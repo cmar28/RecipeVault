@@ -397,23 +397,23 @@ const RecipeForm = ({ mode, id }: RecipeFormProps) => {
                       />
                       <Button 
                         type="button" 
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
-                        className="ml-2 text-neutral-300 hover:text-red-500"
+                        className="ml-2 rounded-full hover:text-red-500 hover:border-red-500"
                         onClick={() => handleRemoveIngredient(index)}
                       >
-                        <MinusCircle className="h-5 w-5" />
+                        <MinusCircle className="h-4 w-4" />
                       </Button>
                     </div>
                   ))}
                 </div>
                 <Button 
                   type="button"
-                  variant="link"
-                  className="mt-3 text-primary p-0 h-auto"
+                  variant="outline"
+                  className="mt-3 text-primary border-primary hover:bg-primary/10 hover:text-primary"
                   onClick={handleAddIngredient}
                 >
-                  <PlusCircle className="h-4 w-4 mr-1" />
+                  <PlusCircle className="h-4 w-4 mr-2" />
                   Add Ingredient
                 </Button>
                 <FormMessage>{form.formState.errors.ingredients?.message}</FormMessage>
@@ -442,23 +442,23 @@ const RecipeForm = ({ mode, id }: RecipeFormProps) => {
                       />
                       <Button 
                         type="button" 
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
-                        className="ml-2 text-neutral-300 hover:text-red-500 mt-3"
+                        className="ml-2 rounded-full hover:text-red-500 hover:border-red-500 mt-3"
                         onClick={() => handleRemoveInstruction(index)}
                       >
-                        <MinusCircle className="h-5 w-5" />
+                        <MinusCircle className="h-4 w-4" />
                       </Button>
                     </div>
                   ))}
                 </div>
                 <Button 
                   type="button"
-                  variant="link"
-                  className="mt-3 text-primary p-0 h-auto"
+                  variant="outline"
+                  className="mt-3 text-primary border-primary hover:bg-primary/10 hover:text-primary"
                   onClick={handleAddInstruction}
                 >
-                  <PlusCircle className="h-4 w-4 mr-1" />
+                  <PlusCircle className="h-4 w-4 mr-2" />
                   Add Step
                 </Button>
                 <FormMessage>{form.formState.errors.instructions?.message}</FormMessage>
