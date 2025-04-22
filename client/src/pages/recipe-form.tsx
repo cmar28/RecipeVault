@@ -402,7 +402,7 @@ const RecipeForm = ({ mode, id }: RecipeFormProps) => {
                         className="ml-2 text-neutral-300 hover:text-red-500"
                         onClick={() => handleRemoveIngredient(index)}
                       >
-                        <span className="material-icons">remove_circle</span>
+                        <MinusCircle className="h-5 w-5" />
                       </Button>
                     </div>
                   ))}
@@ -413,7 +413,7 @@ const RecipeForm = ({ mode, id }: RecipeFormProps) => {
                   className="mt-3 text-primary p-0 h-auto"
                   onClick={handleAddIngredient}
                 >
-                  <span className="material-icons mr-1">add_circle</span>
+                  <PlusCircle className="h-4 w-4 mr-1" />
                   Add Ingredient
                 </Button>
                 <FormMessage>{form.formState.errors.ingredients?.message}</FormMessage>
@@ -447,7 +447,7 @@ const RecipeForm = ({ mode, id }: RecipeFormProps) => {
                         className="ml-2 text-neutral-300 hover:text-red-500 mt-3"
                         onClick={() => handleRemoveInstruction(index)}
                       >
-                        <span className="material-icons">remove_circle</span>
+                        <MinusCircle className="h-5 w-5" />
                       </Button>
                     </div>
                   ))}
@@ -458,7 +458,7 @@ const RecipeForm = ({ mode, id }: RecipeFormProps) => {
                   className="mt-3 text-primary p-0 h-auto"
                   onClick={handleAddInstruction}
                 >
-                  <span className="material-icons mr-1">add_circle</span>
+                  <PlusCircle className="h-4 w-4 mr-1" />
                   Add Step
                 </Button>
                 <FormMessage>{form.formState.errors.instructions?.message}</FormMessage>
