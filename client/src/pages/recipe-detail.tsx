@@ -241,15 +241,15 @@ const RecipeDetail = () => {
           
           {recipe.ingredients && recipe.ingredients.length > 0 && (
             <div className="mb-8">
-              <h3 className="text-xl font-bold mb-4 flex items-center">
-                <ListOrdered className="h-5 w-5 mr-2 text-secondary" />
+              <h3 className="text-xl font-bold mb-4 flex items-center text-primary">
+                <ListOrdered className="h-5 w-5 mr-2 text-primary" />
                 Ingredients
               </h3>
               <ul className="space-y-2 pl-4">
                 {recipe.ingredients.map((ingredient, index) => (
                   <li key={index} className="flex items-start">
-                    <Circle className="h-2 w-2 text-secondary mr-2 mt-1.5" />
-                    <span>{ingredient}</span>
+                    <Circle className="h-2 w-2 text-primary mr-2 mt-1.5 fill-primary" />
+                    <span className="text-neutral-800">{ingredient}</span>
                   </li>
                 ))}
               </ul>
@@ -258,17 +258,17 @@ const RecipeDetail = () => {
           
           {recipe.instructions && recipe.instructions.length > 0 && (
             <div>
-              <h3 className="text-xl font-bold mb-4 flex items-center">
-                <BookOpen className="h-5 w-5 mr-2 text-secondary" />
+              <h3 className="text-xl font-bold mb-4 flex items-center text-primary">
+                <BookOpen className="h-5 w-5 mr-2 text-primary" />
                 Instructions
               </h3>
               <ol className="space-y-4">
                 {recipe.instructions.map((instruction, index) => (
                   <li key={index} className="flex">
-                    <div className="mr-4 h-6 w-6 rounded-full bg-secondary text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div className="mr-4 h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0 mt-0.5 font-bold shadow-sm">
                       <span>{index + 1}</span>
                     </div>
-                    <p>{instruction}</p>
+                    <p className="text-neutral-800">{instruction}</p>
                   </li>
                 ))}
               </ol>
