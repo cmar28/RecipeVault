@@ -8,6 +8,7 @@ import { insertRecipeSchema, Recipe } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { convertFileToBase64 } from "@/utils/image-utils";
+import { PlusCircle, MinusCircle, X, Upload, Image } from "lucide-react";
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -238,7 +239,7 @@ const RecipeForm = ({ mode, id }: RecipeFormProps) => {
               className="rounded-full"
               onClick={handleCancelForm}
             >
-              <span className="material-icons">close</span>
+              <X className="h-5 w-5" />
             </Button>
           </div>
 
@@ -295,7 +296,7 @@ const RecipeForm = ({ mode, id }: RecipeFormProps) => {
                       />
                     ) : (
                       <div className="text-neutral-300 flex flex-col items-center">
-                        <span className="material-icons text-4xl mb-2">image</span>
+                        <Image className="h-10 w-10 mb-2" />
                         <span>No image selected</span>
                       </div>
                     )}
@@ -311,7 +312,7 @@ const RecipeForm = ({ mode, id }: RecipeFormProps) => {
                     type="button"
                     onClick={() => document.getElementById('recipeImage')?.click()}
                   >
-                    <span className="material-icons mr-1 text-sm">upload</span>
+                    <Upload className="h-4 w-4 mr-1" />
                     Select Image
                   </Button>
                 </div>
