@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { Plus } from "lucide-react";
 import Header from "@/components/header";
 import BottomNavigation from "@/components/bottom-navigation";
 import RecipeList from "@/components/recipe-list";
@@ -44,7 +45,7 @@ const Home = () => {
               className="bg-primary text-white flex items-center px-4 py-2 rounded-lg shadow-md hover:bg-opacity-90 transition"
               onClick={handleAddNewRecipe}
             >
-              <span className="material-icons mr-1">add</span>
+              <Plus className="h-4 w-4 mr-1" />
               <span className="font-medium">New</span>
             </button>
           </div>

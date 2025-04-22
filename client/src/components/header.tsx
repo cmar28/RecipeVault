@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Search } from "lucide-react";
 
 type HeaderProps = {
   title: string;

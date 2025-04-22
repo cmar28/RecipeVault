@@ -1,4 +1,5 @@
 import { useLocation } from "wouter";
+import { List, PlusCircle, Heart } from "lucide-react";
 
 type BottomNavigationProps = {
   activeItem: "recipes" | "add" | "favorites";
@@ -23,7 +24,7 @@ const BottomNavigation = ({ activeItem, onAddNew }: BottomNavigationProps) => {
         className={`flex flex-col items-center justify-center w-full h-full ${activeItem === "recipes" ? "text-primary" : "text-neutral-300"}`}
         onClick={handleViewList}
       >
-        <span className="material-icons">list</span>
+        <List className="h-5 w-5" />
         <span className="text-xs mt-1">Recipes</span>
       </button>
       
@@ -31,7 +32,7 @@ const BottomNavigation = ({ activeItem, onAddNew }: BottomNavigationProps) => {
         className={`flex flex-col items-center justify-center w-full h-full ${activeItem === "add" ? "text-primary" : "text-neutral-300"}`}
         onClick={onAddNew}
       >
-        <span className="material-icons">add_circle</span>
+        <PlusCircle className="h-5 w-5" />
         <span className="text-xs mt-1">Add New</span>
       </button>
       
@@ -39,7 +40,7 @@ const BottomNavigation = ({ activeItem, onAddNew }: BottomNavigationProps) => {
         className={`flex flex-col items-center justify-center w-full h-full ${activeItem === "favorites" ? "text-primary" : "text-neutral-300"}`}
         onClick={handleViewFavorites}
       >
-        <span className="material-icons">favorite</span>
+        <Heart className="h-5 w-5" />
         <span className="text-xs mt-1">Favorites</span>
       </button>
     </nav>
