@@ -85,7 +85,7 @@ const RecipeDetail = () => {
             <Skeleton className="w-full h-full" />
             <div className="absolute top-4 left-4">
               <Button variant="outline" size="icon" className="bg-white bg-opacity-90 rounded-full shadow-md" onClick={handleBackToList}>
-                <span className="material-icons">arrow_back</span>
+                <ArrowLeft className="h-5 w-5" />
               </Button>
             </div>
           </div>
