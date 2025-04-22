@@ -384,6 +384,9 @@ const RecipeForm = ({ mode, id }: RecipeFormProps) => {
                 <div className="space-y-3">
                   {ingredients.map((_, index) => (
                     <div key={index} className="flex items-center">
+                      <div className="flex-shrink-0 mr-2 mt-1">
+                        <Circle className="h-2 w-2 text-primary fill-primary" />
+                      </div>
                       <Controller
                         control={form.control}
                         name={`ingredients.${index}`}
@@ -425,7 +428,7 @@ const RecipeForm = ({ mode, id }: RecipeFormProps) => {
                 <div className="space-y-3">
                   {instructions.map((_, index) => (
                     <div key={index} className="flex items-start">
-                      <div className="mt-3 mr-3 h-6 w-6 rounded-full bg-secondary text-white flex items-center justify-center flex-shrink-0">
+                      <div className="mt-3 mr-3 h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0 font-bold shadow-sm">
                         <span>{index + 1}</span>
                       </div>
                       <Controller
