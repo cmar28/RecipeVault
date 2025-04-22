@@ -21,7 +21,8 @@ import {
 } from "lucide-react";
 
 const RecipeDetail = () => {
-  const { id } = useParams();
+  const params = useParams<{ id: string }>();
+  const id = params?.id || '';
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const numericId = parseInt(id);
@@ -29,10 +30,17 @@ const RecipeDetail = () => {
   // Fetch recipe details
   const { data: recipe, isLoading, error } = useQuery<Recipe>({ 
     queryKey: ['/api/recipes', numericId],
-    enabled: !isNaN(numericId),
-    onSuccess: (data) => {
+    queryFn: async (): Promise<Recipe> => {
+      console.log("Fetching recipe with ID:", numericId);
+      const response = await fetch(`/api/recipes/${numericId}`);
+      if (!response.ok) {
+        throw new Error('Recipe not found');
+      }
+      const data = await response.json();
       console.log("Recipe data received:", data);
-    }
+      return data as Recipe;
+    },
+    enabled: !isNaN(numericId)
   });
 
   // Handle delete mutation
