@@ -6,6 +6,8 @@ import {
   type Recipe, 
   type InsertRecipe 
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -22,69 +24,62 @@ export interface IStorage {
   deleteRecipe(id: number): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private recipes: Map<number, Recipe>;
-  currentUserId: number;
-  currentRecipeId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.recipes = new Map();
-    this.currentUserId = 1;
-    this.currentRecipeId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   // Recipe operations
   async getRecipes(): Promise<Recipe[]> {
-    return Array.from(this.recipes.values());
+    return await db.select().from(recipes);
   }
 
   async getRecipe(id: number): Promise<Recipe | undefined> {
-    return this.recipes.get(id);
+    const [recipe] = await db.select().from(recipes).where(eq(recipes.id, id));
+    return recipe || undefined;
   }
 
   async createRecipe(insertRecipe: InsertRecipe): Promise<Recipe> {
-    const id = this.currentRecipeId++;
-    const recipe: Recipe = { ...insertRecipe, id };
-    this.recipes.set(id, recipe);
+    const [recipe] = await db
+      .insert(recipes)
+      .values(insertRecipe)
+      .returning();
     return recipe;
   }
 
   async updateRecipe(id: number, recipeUpdate: Partial<InsertRecipe>): Promise<Recipe | undefined> {
-    const existingRecipe = this.recipes.get(id);
+    const [updatedRecipe] = await db
+      .update(recipes)
+      .set(recipeUpdate)
+      .where(eq(recipes.id, id))
+      .returning();
     
-    if (!existingRecipe) {
-      return undefined;
-    }
-    
-    const updatedRecipe: Recipe = { ...existingRecipe, ...recipeUpdate };
-    this.recipes.set(id, updatedRecipe);
-    
-    return updatedRecipe;
+    return updatedRecipe || undefined;
   }
 
   async deleteRecipe(id: number): Promise<boolean> {
-    return this.recipes.delete(id);
+    const [deletedRecipe] = await db
+      .delete(recipes)
+      .where(eq(recipes.id, id))
+      .returning({ id: recipes.id });
+    
+    return !!deletedRecipe;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
