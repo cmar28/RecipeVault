@@ -29,7 +29,10 @@ const RecipeDetail = () => {
   // Fetch recipe details
   const { data: recipe, isLoading, error } = useQuery<Recipe>({ 
     queryKey: ['/api/recipes', numericId],
-    enabled: !isNaN(numericId)
+    enabled: !isNaN(numericId),
+    onSuccess: (data) => {
+      console.log("Recipe data received:", data);
+    }
   });
 
   // Handle delete mutation
@@ -205,21 +208,22 @@ const RecipeDetail = () => {
           )}
           
           <div className="flex items-center justify-between mb-8 text-sm">
-            {recipe.prepTime !== null && (
+            {/* Debug: prepTime: {recipe.prepTime} */}
+            {recipe.prepTime !== undefined && recipe.prepTime !== null && (
               <div className="flex items-center">
                 <Clock className="h-4 w-4 mr-2 text-primary" />
                 <span>{recipe.prepTime} mins prep</span>
               </div>
             )}
             
-            {recipe.cookTime !== null && (
+            {recipe.cookTime !== undefined && recipe.cookTime !== null && (
               <div className="flex items-center">
                 <Timer className="h-4 w-4 mr-2 text-primary" />
                 <span>{recipe.cookTime} mins cook</span>
               </div>
             )}
             
-            {recipe.servings !== null && (
+            {recipe.servings !== undefined && recipe.servings !== null && (
               <div className="flex items-center">
                 <Utensils className="h-4 w-4 mr-2 text-primary" />
                 <span>{recipe.servings} servings</span>
