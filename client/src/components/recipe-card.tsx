@@ -30,7 +30,7 @@ const RecipeCard = ({ recipe }: RecipeCardProps) => {
             <Image className="h-12 w-12 text-neutral-400" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent h-12 flex items-end">
           <div className="p-3 text-white">
             <div className="flex items-center">
               <Clock className="h-3 w-3 mr-1" />
