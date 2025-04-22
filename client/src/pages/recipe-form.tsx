@@ -8,7 +8,7 @@ import { insertRecipeSchema, Recipe } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { convertFileToBase64 } from "@/utils/image-utils";
-import { PlusCircle, MinusCircle, X, Upload, Image } from "lucide-react";
+import { PlusCircle, MinusCircle, X, Upload, Image, Circle } from "lucide-react";
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
