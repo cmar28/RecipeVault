@@ -7,6 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  ArrowLeft, 
+  Edit, 
+  Trash, 
+  Image, 
+  Clock, 
+  Timer, 
+  Utensils,
+  ListOrdered,
+  BookOpen,
+  Circle
+} from "lucide-react";
 
 const RecipeDetail = () => {
   const { id } = useParams();
@@ -130,7 +142,7 @@ const RecipeDetail = () => {
             />
           ) : (
             <div className="w-full h-full bg-neutral-200 flex items-center justify-center">
-              <span className="material-icons text-4xl text-neutral-400">image</span>
+              <Image className="h-16 w-16 text-neutral-400" />
             </div>
           )}
           
@@ -141,7 +153,7 @@ const RecipeDetail = () => {
               className="bg-white bg-opacity-90 rounded-full shadow-md" 
               onClick={handleBackToList}
             >
-              <span className="material-icons">arrow_back</span>
+              <ArrowLeft className="h-5 w-5" />
             </Button>
           </div>
           
@@ -152,7 +164,7 @@ const RecipeDetail = () => {
               className="bg-white bg-opacity-90 rounded-full shadow-md" 
               onClick={handleEditRecipe}
             >
-              <span className="material-icons">edit</span>
+              <Edit className="h-5 w-5" />
             </Button>
             
             <AlertDialog>
@@ -162,7 +174,7 @@ const RecipeDetail = () => {
                   size="icon" 
                   className="bg-white bg-opacity-90 rounded-full shadow-md"
                 >
-                  <span className="material-icons text-red-500">delete</span>
+                  <Trash className="h-5 w-5 text-red-500" />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -189,27 +201,27 @@ const RecipeDetail = () => {
         <div className="p-6">
           <h2 className="text-2xl font-bold mb-2">{recipe.title}</h2>
           {recipe.description && (
-            <p className="text-neutral-300 mb-6">{recipe.description}</p>
+            <p className="text-neutral-600 mb-6">{recipe.description}</p>
           )}
           
           <div className="flex items-center justify-between mb-8 text-sm">
             {recipe.prepTime !== null && (
               <div className="flex items-center">
-                <span className="material-icons mr-2 text-primary">schedule</span>
+                <Clock className="h-4 w-4 mr-2 text-primary" />
                 <span>{recipe.prepTime} mins prep</span>
               </div>
             )}
             
             {recipe.cookTime !== null && (
               <div className="flex items-center">
-                <span className="material-icons mr-2 text-primary">timer</span>
+                <Timer className="h-4 w-4 mr-2 text-primary" />
                 <span>{recipe.cookTime} mins cook</span>
               </div>
             )}
             
             {recipe.servings !== null && (
               <div className="flex items-center">
-                <span className="material-icons mr-2 text-primary">restaurant</span>
+                <Utensils className="h-4 w-4 mr-2 text-primary" />
                 <span>{recipe.servings} servings</span>
               </div>
             )}
@@ -218,13 +230,13 @@ const RecipeDetail = () => {
           {recipe.ingredients && recipe.ingredients.length > 0 && (
             <div className="mb-8">
               <h3 className="text-xl font-bold mb-4 flex items-center">
-                <span className="material-icons mr-2 text-secondary">format_list_bulleted</span>
+                <ListOrdered className="h-5 w-5 mr-2 text-secondary" />
                 Ingredients
               </h3>
               <ul className="space-y-2 pl-4">
                 {recipe.ingredients.map((ingredient, index) => (
                   <li key={index} className="flex items-start">
-                    <span className="material-icons text-secondary mr-2 mt-0.5 text-sm">fiber_manual_record</span>
+                    <Circle className="h-2 w-2 text-secondary mr-2 mt-1.5" />
                     <span>{ingredient}</span>
                   </li>
                 ))}
@@ -235,7 +247,7 @@ const RecipeDetail = () => {
           {recipe.instructions && recipe.instructions.length > 0 && (
             <div>
               <h3 className="text-xl font-bold mb-4 flex items-center">
-                <span className="material-icons mr-2 text-secondary">menu_book</span>
+                <BookOpen className="h-5 w-5 mr-2 text-secondary" />
                 Instructions
               </h3>
               <ol className="space-y-4">
