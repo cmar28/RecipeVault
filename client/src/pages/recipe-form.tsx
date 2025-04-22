@@ -55,12 +55,34 @@ const RecipeForm = ({ mode, id }: RecipeFormProps) => {
   // For edit mode, fetch the existing recipe
   const { data: existingRecipe, isLoading } = useQuery<Recipe>({
     queryKey: ['/api/recipes', id],
+    queryFn: async (): Promise<Recipe> => {
+      if (!id) throw new Error('Recipe ID is undefined');
+      console.log("Fetching recipe in edit mode with ID:", id);
+      const response = await fetch(`/api/recipes/${id}`);
+      if (!response.ok) {
+        throw new Error('Recipe not found');
+      }
+      const data = await response.json();
+      console.log("Recipe data received in edit mode:", data);
+      return data as Recipe;
+    },
     enabled: mode === "edit" && id !== undefined,
   });
+
+  // Debug: Log recipe info when fetched
+  useEffect(() => {
+    if (mode === "edit") {
+      console.log("Fetching recipe with ID:", id);
+      if (existingRecipe) {
+        console.log("Recipe data received:", existingRecipe);
+      }
+    }
+  }, [existingRecipe, id, mode]);
 
   // Update form when existing recipe is loaded
   useEffect(() => {
     if (mode === "edit" && existingRecipe) {
+      console.log("Updating form with recipe data");
       form.reset({
         title: existingRecipe.title,
         description: existingRecipe.description || "",
@@ -77,6 +99,7 @@ const RecipeForm = ({ mode, id }: RecipeFormProps) => {
       setIngredients(existingRecipe.ingredients || ['']);
       setInstructions(existingRecipe.instructions || ['']);
       setImagePreview(existingRecipe.imageData || null);
+      console.log("Form state after update:", form.getValues());
     }
   }, [existingRecipe, form, mode]);
 

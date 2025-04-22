@@ -70,7 +70,8 @@ const RecipeDetail = () => {
   };
 
   const handleEditRecipe = () => {
-    setLocation(`/edit/${id}`);
+    console.log("Navigating to edit recipe with ID:", numericId);
+    setLocation(`/edit/${numericId}`);
   };
 
   const handleDeleteRecipe = () => {

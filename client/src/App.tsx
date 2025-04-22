@@ -14,7 +14,12 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/recipes/:id" component={RecipeDetail} />
       <Route path="/create" component={() => <RecipeForm mode="create" />} />
-      <Route path="/edit/:id" component={(params) => <RecipeForm mode="edit" id={parseInt(params.id)} />} />
+      <Route path="/edit/:id" component={(props) => {
+        console.log("Edit route params:", props);
+        const id = parseInt(props.params.id);
+        console.log("Parsed ID:", id);
+        return <RecipeForm mode="edit" id={id} />;
+      }} />
       <Route component={NotFound} />
     </Switch>
   );
