@@ -108,29 +108,10 @@ const Home = () => {
                 </button>
               </div>
               
-              <div className="flex overflow-x-auto pb-4 space-x-4 hide-scrollbar">
-                {favoriteRecipes.slice(0, 3).map(recipe => (
-                  <div key={recipe.id} className="w-64 flex-shrink-0">
-                    <div 
-                      className="recipe-card cursor-pointer h-full"
-                      onClick={() => setLocation(`/recipes/${recipe.id}`)}
-                    >
-                      <div className="recipe-card-img h-40">
-                        {recipe.imageData ? (
-                          <img src={recipe.imageData} alt={recipe.title} className="object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-accent flex items-center justify-center">
-                            <span className="text-primary font-semibold">No Image</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-3">
-                        <h3 className="font-bold line-clamp-1">{recipe.title}</h3>
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                          {recipe.description}
-                        </p>
-                      </div>
-                    </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-4">
+                {favoriteRecipes.slice(0, 3).map((recipe, index) => (
+                  <div key={recipe.id} style={{ animationDelay: `${index * 0.05}s` }}>
+                    <RecipeCard recipe={recipe} />
                   </div>
                 ))}
               </div>

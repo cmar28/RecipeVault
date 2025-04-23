@@ -10,6 +10,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import RecipeDetail from "@/pages/recipe-detail";
 import RecipeForm from "@/pages/recipe-form";
+import Favorites from "@/pages/favorites";
 import Login from "@/pages/login";
 
 function Router() {
@@ -28,6 +29,7 @@ function Router() {
         console.log("Parsed ID:", id);
         return <RecipeForm mode="edit" id={id} />;
       }} />
+      <ProtectedRoute path="/favorites" component={Favorites} />
       <Route component={NotFound} />
     </Switch>
   );
