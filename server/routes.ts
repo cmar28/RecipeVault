@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertRecipeSchema } from "@shared/schema";
+import { insertRecipeSchema, insertUserSchema } from "@shared/schema";
 import multer from "multer";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -15,6 +15,39 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Firebase User API endpoints
+  // Sync user data from Firebase Auth to our database
+  app.post("/api/users/sync", async (req: Request, res: Response) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      const user = await storage.upsertUser(userData);
+      res.status(201).json(user);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      console.error("Error syncing user:", error);
+      res.status(500).json({ message: "Failed to sync user data" });
+    }
+  });
+
+  // Get user data from our database
+  app.get("/api/users/:uid", async (req: Request, res: Response) => {
+    try {
+      const { uid } = req.params;
+      const user = await storage.getUser(uid);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
   // Get all recipes
   app.get("/api/recipes", async (req: Request, res: Response) => {
     try {

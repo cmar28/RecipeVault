@@ -1,11 +1,15 @@
-import { pgTable, text, serial, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, varchar, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Firebase users - stores additional user info from Firebase Auth
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  uid: varchar("uid").primaryKey().notNull(), // Firebase UID
+  displayName: varchar("display_name"),
+  email: varchar("email"),
+  photoURL: varchar("photo_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  lastLogin: timestamp("last_login").defaultNow(),
 });
 
 export const recipes = pgTable("recipes", {
@@ -20,12 +24,10 @@ export const recipes = pgTable("recipes", {
   ingredients: text("ingredients").array(),
   instructions: text("instructions").array(),
   isFavorite: boolean("is_favorite").default(false),
+  createdBy: varchar("created_by").references(() => users.uid), // Reference to Firebase user ID
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
+export const insertUserSchema = createInsertSchema(users);
 
 export const insertRecipeSchema = createInsertSchema(recipes).omit({
   id: true,

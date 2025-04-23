@@ -29,11 +29,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // Sync user data with our database
+  const syncUserWithDatabase = async (user: User) => {
+    if (!user) return;
+    
+    try {
+      // Prepare user data
+      const userData = {
+        uid: user.uid,
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+      };
+      
+      // Send user data to our API
+      const response = await fetch('/api/users/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to sync user data with database');
+      }
+    } catch (error) {
+      console.error('Error syncing user data:', error);
+    }
+  };
+
   // Set up auth state listener on mount
   useEffect(() => {
     const unsubscribe = subscribeToAuthChanges((user) => {
       setCurrentUser(user);
       setLoading(false);
+      
+      // If user is signed in, sync with database
+      if (user) {
+        syncUserWithDatabase(user);
+      }
     });
 
     // Clean up subscription

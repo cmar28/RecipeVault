@@ -11,10 +11,10 @@ import { eq } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
-  // User operations
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // Firebase User operations
+  getUser(uid: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  upsertUser(user: InsertUser): Promise<User>;
   
   // Recipe operations
   getRecipes(): Promise<Recipe[]>;
@@ -25,22 +25,31 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // User operations
-  async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+  // Firebase User operations
+  async getUser(uid: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.uid, uid));
     return user || undefined;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || undefined;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async upsertUser(userData: InsertUser): Promise<User> {
+    // Upsert - create if not exists, update if exists
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.uid,
+        set: {
+          ...userData,
+          lastLogin: new Date(),
+        },
+      })
       .returning();
+    
     return user;
   }
 
