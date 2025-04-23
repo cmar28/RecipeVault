@@ -5,6 +5,7 @@ import { Plus, ChevronRight, TrendingUp, ThumbsUp } from "lucide-react";
 import Header from "@/components/header";
 import BottomNavigation from "@/components/bottom-navigation";
 import RecipeList from "@/components/recipe-list";
+import RecipeCard from "@/components/recipe-card";
 import { Recipe } from "@shared/schema";
 
 const Home = () => {
