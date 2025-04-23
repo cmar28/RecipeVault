@@ -173,6 +173,47 @@ const RecipeDetail = () => {
             <Button 
               variant="outline" 
               size="icon" 
+              className={`bg-white bg-opacity-90 rounded-full shadow-md ${
+                recipe.isFavorite ? 'border-red-400' : ''
+              }`}
+              onClick={() => {
+                const updatedRecipe = {...recipe, isFavorite: !recipe.isFavorite};
+                
+                // Call API to update the recipe's favorite status
+                apiRequest('PATCH', `/api/recipes/${recipe.id}`, {
+                  isFavorite: updatedRecipe.isFavorite
+                })
+                .then(() => {
+                  // Refresh recipe data
+                  queryClient.invalidateQueries({ queryKey: ['/api/recipes', numericId] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/recipes'] });
+                  
+                  // Show toast notification
+                  toast({
+                    title: updatedRecipe.isFavorite ? "Added to favorites" : "Removed from favorites",
+                    description: updatedRecipe.isFavorite 
+                      ? `${recipe.title} has been added to your favorites.`
+                      : `${recipe.title} has been removed from your favorites.`,
+                    duration: 2000
+                  });
+                })
+                .catch(() => {
+                  toast({
+                    title: "Error",
+                    description: "Failed to update favorite status. Please try again.",
+                    variant: "destructive"
+                  });
+                });
+              }}
+            >
+              <Heart className={`h-5 w-5 transition-colors ${
+                recipe.isFavorite ? 'text-red-500 fill-red-500' : 'text-muted-foreground hover:text-red-400'
+              }`} />
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="icon" 
               className="bg-white bg-opacity-90 rounded-full shadow-md" 
               onClick={handleEditRecipe}
             >

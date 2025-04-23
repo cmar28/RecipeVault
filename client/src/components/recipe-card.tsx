@@ -1,6 +1,9 @@
 import { useLocation } from "wouter";
 import { Recipe } from "@shared/schema";
 import { Image, Clock, Timer, Heart, Utensils, ChefHat } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 type RecipeCardProps = {
   recipe: Recipe;
@@ -8,18 +11,54 @@ type RecipeCardProps = {
 
 const RecipeCard = ({ recipe }: RecipeCardProps) => {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+
+  // Calculate total time (prep + cook)
+  const totalTime = (recipe.prepTime || 0) + (recipe.cookTime || 0);
+
+  // Toggle favorite mutation
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('PATCH', `/api/recipes/${recipe.id}`, {
+        isFavorite: !recipe.isFavorite
+      });
+    },
+    onSuccess: () => {
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/recipes'] });
+      
+      // Show toast notification
+      toast({
+        title: recipe.isFavorite ? "Removed from favorites" : "Added to favorites",
+        description: recipe.isFavorite 
+          ? `${recipe.title} has been removed from your favorites.`
+          : `${recipe.title} has been added to your favorites.`,
+        duration: 2000
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update favorite status. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
 
   const handleClick = () => {
     setLocation(`/recipes/${recipe.id}`);
   };
 
-  // Calculate total time (prep + cook)
-  const totalTime = (recipe.prepTime || 0) + (recipe.cookTime || 0);
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    toggleFavoriteMutation.mutate();
+  };
 
   return (
     <div 
       className="recipe-card animate-fade-in" 
       onClick={handleClick}
+      data-isfavorite={recipe.isFavorite}
     >
       <div className="recipe-card-img">
         {recipe.imageData ? (
@@ -49,9 +88,19 @@ const RecipeCard = ({ recipe }: RecipeCardProps) => {
             </div>
             
             <div className="flex items-center">
-              {recipe.isFavorite && (
-                <Heart className="h-5 w-5 text-red-500 fill-red-500" />
-              )}
+              <button 
+                className="p-1.5 rounded-full hover:bg-white/20 transition-colors"
+                onClick={handleToggleFavorite}
+                aria-label={recipe.isFavorite ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Heart 
+                  className={`h-5 w-5 transition-all duration-300 ${
+                    recipe.isFavorite 
+                      ? "text-red-500 fill-red-500 scale-110" 
+                      : "text-white hover:text-red-400"
+                  }`}
+                />
+              </button>
             </div>
           </div>
         </div>
