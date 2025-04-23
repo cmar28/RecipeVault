@@ -3,49 +3,67 @@
 @tailwind utilities;
 
 :root {
-      --background: 0 0% 100%;
---foreground: 20 14.3% 4.1%;
---muted: 60 4.8% 95.9%;
---muted-foreground: 25 5.3% 44.7%;
---popover: 0 0% 100%;
---popover-foreground: 20 14.3% 4.1%;
---card: 0 0% 100%;
---card-foreground: 20 14.3% 4.1%;
---border: 20 5.9% 90%;
---input: 20 5.9% 90%;
---primary: 207 90% 54%;
---primary-foreground: 211 100% 99%;
---secondary: 60 4.8% 95.9%;
---secondary-foreground: 24 9.8% 10%;
---accent: 60 4.8% 95.9%;
---accent-foreground: 24 9.8% 10%;
---destructive: 0 84.2% 60.2%;
---destructive-foreground: 60 9.1% 97.8%;
---ring: 20 14.3% 4.1%;
---radius: 0.5rem;
-  }
-  .dark {
-      --background: 240 10% 3.9%;
---foreground: 0 0% 98%;
---muted: 240 3.7% 15.9%;
---muted-foreground: 240 5% 64.9%;
---popover: 240 10% 3.9%;
---popover-foreground: 0 0% 98%;
---card: 240 10% 3.9%;
---card-foreground: 0 0% 98%;
---border: 240 3.7% 15.9%;
---input: 240 3.7% 15.9%;
---primary: 207 90% 54%;
---primary-foreground: 211 100% 99%;
---secondary: 240 3.7% 15.9%;
---secondary-foreground: 0 0% 98%;
---accent: 240 3.7% 15.9%;
---accent-foreground: 0 0% 98%;
---destructive: 0 62.8% 30.6%;
---destructive-foreground: 0 0% 98%;
---ring: 240 4.9% 83.9%;
---radius: 0.5rem;
-  }
+  /* Main colors - vibrant orange-based food theme */
+  --background: 0 0% 98%;
+  --foreground: 20 14.3% 4.1%;
+  --muted: 30 4.8% 95.9%;
+  --muted-foreground: 25 5.3% 44.7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 14.3% 4.1%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 14.3% 4.1%;
+  --border: 20 5.9% 90%;
+  --input: 20 5.9% 90%;
+  
+  /* Primary - warmer orange tone */
+  --primary: 20 100% 50%;
+  --primary-foreground: 211 100% 99%;
+  
+  /* Secondary - soft complementary blue */
+  --secondary: 210 100% 95%;
+  --secondary-foreground: 210 100% 25%;
+  
+  /* Accent - softer orange for highlights */
+  --accent: 20 100% 95%;
+  --accent-foreground: 20 100% 30%;
+  
+  /* Destructive for delete actions */
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 60 9.1% 97.8%;
+  
+  --ring: 20 100% 60%;
+  --radius: 0.75rem;
+}
+  
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  
+  /* Primary - warmer orange tone in dark mode */
+  --primary: 20 100% 60%;
+  --primary-foreground: 211 100% 99%;
+  
+  /* Secondary - darker blue for dark mode */
+  --secondary: 210 100% 15%;
+  --secondary-foreground: 210 100% 90%;
+  
+  /* Accent - darker orange tone */
+  --accent: 20 100% 15%;
+  --accent-foreground: 20 100% 90%;
+  
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 20 100% 65%;
+  --radius: 0.75rem;
+}
 
 @layer base {
   * {
@@ -54,6 +72,82 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* Custom recipe card styling */
+  .recipe-card {
+    @apply bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1;
+  }
+  
+  .recipe-card-img {
+    @apply h-52 overflow-hidden relative;
+  }
+  
+  .recipe-card-img img {
+    @apply w-full h-full object-cover transition-transform duration-700 ease-in-out;
+  }
+  
+  .recipe-card:hover .recipe-card-img img {
+    @apply scale-105;
+  }
+  
+  .recipe-card-overlay {
+    @apply absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent h-20 flex items-end;
+  }
+  
+  .recipe-card-content {
+    @apply p-5;
+  }
+  
+  /* Ingredient list styling */
+  .ingredient-list li {
+    @apply py-1.5 relative pl-7 before:absolute before:content-[''] before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-4 before:h-4 before:bg-primary before:bg-opacity-20 before:rounded-full before:border before:border-primary;
+  }
+  
+  /* Instruction list styling */
+  .instruction-list li {
+    @apply py-2 pl-12 relative mb-5 last:mb-0;
+  }
+  
+  .instruction-list li::before {
+    @apply content-[attr(data-step)] absolute left-0 top-0 w-8 h-8 bg-primary text-white font-bold flex items-center justify-center rounded-full text-sm shadow-sm;
+  }
+  
+  /* Bottom nav highlight */
+  .nav-indicator {
+    @apply absolute bottom-0 h-1 bg-primary rounded-t-md transition-all duration-300 ease-in-out;
+  }
+  
+  /* FAB button styling */
+  .fab-button {
+    @apply fixed bottom-20 right-4 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center z-20 transition-all duration-300 ease-in-out;
+  }
+  
+  /* Custom animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease forwards;
+  }
+  
+  /* Mobile optimizations */
+  @media (max-width: 640px) {
+    .recipe-grid {
+      @apply grid-cols-1 gap-4 px-3;
+    }
+    
+    .recipe-detail-container {
+      @apply rounded-none px-0 pb-24;
+    }
+    
+    .recipe-card-img {
+      @apply h-48;
+    }
   }
 }
 
