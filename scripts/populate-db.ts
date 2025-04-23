@@ -1,30 +1,30 @@
 import { db } from "../server/db";
 import { recipes } from "../shared/schema";
+import * as fs from 'fs';
+import * as path from 'path';
 
-// Enhanced base64 image data for more visible, bolder placeholder images
+// Function to read image files and convert to base64
+function imageFileToBase64(filePath: string): string {
+  try {
+    // Read the file
+    const fileData = fs.readFileSync(filePath);
+    // Convert to base64 and create a data URL
+    const base64Data = fileData.toString('base64');
+    const mimeType = path.extname(filePath).toLowerCase() === '.png' ? 'image/png' : 'image/jpeg';
+    return `data:${mimeType};base64,${base64Data}`;
+  } catch (error) {
+    console.error(`Error reading image file: ${filePath}`, error);
+    return '';
+  }
+}
+
+// Get base64 encoded images from the PNG files
 const recipeImages = {
-  // Red color - more vibrant for pizza image
-  pizza:
-    "data:image/jpeg;base64,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",
-
-  redImage:
-    "data:image/png;base64,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",
-
-  // Green color - more vibrant for avocado toast
-  greenImage:
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAMAAABHPGVmAAAAnFBMVEUzpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD4zpD7MHqcYAAAAM3RSTlMAmfRJUQgV7Dkm4cBOJwPX04d1F0Aqnol9cjUPLcmukjrp5th7GA7Jso5gVS+/q2pXRDLK3HkPAAADAElEQVRo3u3a2XKbQBAFUGkkEFoQsgQCxGazAZPFJv//a1HTGgJKleUl8jSnKkVlqrjTfd1NYzH/VLH5qP2vZgv7vXbzUZtJO2f8uoJhcJ6o1mrGGq7o4AtYrRLrOW4o1CouGwU6tOrvMvLm4jtrvcGYk0wJB5pKuZDm4G1t6qn17AxtqrSw48C6p1KgnUg/w9GsEbihYv7Idv7YEGDMZIPt/KW4BVhiYF6EOmqRrKiDHFvKOBjaxs6whJwfXUoL+2HCkVkLEJ9GqzjCcQY7UVNnDmg7mNuiNCzUzq21vNcwUa9NqbQVRzrqfGp7BQM1ayuDZ37K3lLZQbPWO8rWt6y0pXK2H7CnYt7yXh3+xTJeXjdfrddU8tEYTl0eE6XS9/Itp61TvSS2qOQGlGqrRW7aasTahHYcLY9UD3eMaHNkp/KUhpTGZqd0v0fz2e30bMh7Xba8Pj+/zvkgRCfbKfTDLF9c+WqIJvOpzr4fpKtYLRmEoSeGaaKK0qHX3aWq4+VFHSmaRFTlw7M3Vk1H0Oi4SruLp2VZ9AzxGvgKm0Yjj6L5vDgeYzHrxtHzPuvt8r5Cg6LFUfCp9y6WC+5Fr4tYJzTJtqmk3X9d80VsjKfSCzLxiAolZw0+Y2NJ0qFSBM3YLDumWg6NmMVU82FEwamWQyMWW8plWGNLuQJrPH4onMOWL4ozaMS56uQjxKK2vYcJP6FMAROidoZbmDgIKhQw0RPUcWEgpFyADXW+RigT4Bz12cLGJKVCBivxREAXNoKEog7AJMRMiSKAYwXaMQgz0kxJrACmLlKbg8soKpRgZ0D9TQc2jDeVSmClyVOHSzvBWUL9bpgEkIm0DY7b2F3GHPULk3PkXWNfCeCF1GnvwbmCOplwbVEnCy7lAq3KGQ7SYqP+pS3UwcXGfQ81EnUQC4L2uCnuQqduAzcIW/6htQ0o1zT/Vf2A65/88fPnTwAX1vkZf+XlOdZ7+w1E6NB7s/OdMQAAAABJRU5ErkJggg==",
-
-  // Yellow color - more vibrant for pasta dish
-  yellowImage:
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAMAAABHPGVmAAAA/1BMVEXyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwLyuwL4X4b+AAAAU3RSTlMAAfwK9AUFEQwU3xji0jAe8FsqJfnr5rl0blKsiW5ZMikcycB5WUs9EP3z7NnKjYVpUUA6+e/Syr6xsKyakIN9dXJfTUQxKNrVysWvrZmYj4d6OAqsuOIAAAMtSURBVGje7ZrndqMwEIUNQgKEwL333nvvJbub3fd/mB0JjA3GJnF2N+ewOT+sM9b96EojCcTTw4OovUf15PHhvSiKn/Z3DQdVUXwLv97UlSo9RQTvSlUDnVRZwWoXqgYKHzWPHlQO8U2NoVtFc313Zy4Ry9ydDarwdcUHwQFwX7cP/C0MvIIvUG++yF9QhS8QHw+AeEg+z1+yhq+wlj+vVOHrjw8GaXC+3iaqRF9fZPj6esMcpI3z4r5KfL0WQKXC1yeAcUhGBIRD0pCQhCQkIQlJSEISkpCEJCQhCUn4L0Iql8FgYBgGK/R3QaZpuq47QMfM/xsymUwmpm0OrbFxnRj+JqQqsyGMJLH8NUhlGGCzmX2NGK0vu+w0Qc/HFSnVJljDucFwlrjjyqXS33/sTx52GKEfG/sQBDlD0LxpEeM0f/w0GDWB/oNFJBL3Nrmu20gYnIy1LEvVtHwYwt8ZvCYaTYrRaqPeHNdqwL0vxGKxKN4WwUWG8VhPP3qK0xSDSQkRGACcCfNUG/cMBRnwK+GX8TMC6Tm7NNbTrSk6cRAijokV5gTzMJEBWIEzXmI0FsMQk44FiBlBDmICYiX0g6SXFKNjnb5kfKk4UUzm2dqQzBQ7rsMQpwtAkAAEL0OiFMmVKC5/gqSZUJ+y/EGQi1h1+CLNRKjOXn4AMlVpJnrufL0gBG/6rYvp6x2EtBRaF35EvAOQokozsRwupq/VEZJ+qAJxRYIQXU0xoSe2rT1AZkOKia1dq+8BWQwpJla7VqscQ9gWUjFUYdud4xn6iTbSXKwTQBNjF5BaQADSRMvnAMma8P4QAgDxzXwBE1FXHWNvCB1N6gI9cQ5MLKlWGsEZADlvJX7l7g5BU5E5UUZlPtfRAOFvPrULENPn8zQ+NXHW3WkJNVPpDnB2a3rWkPDJMYEoB49MsG2kc/C2kDbZt4W0SSFYsbcmjWGjCZBGvcE2ZUwBYWcU+vM0G/OEeYEFZDtC3BXAN63ExaMgKD+q3rS/l5Mxl/kSbNPvWvFUFW8e38D7nJ5qPP0B6r07Y7+UgYoAAAAASUVORK5CYII=",
-
-  // Brown color - more vibrant for chocolate cake
-  brownImage:
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAMAAABHPGVmAAAA/1BMVEVyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBxyPBwv9Xb8AAAAU3RSTlMA/gEU+fr4Qvzz6zjdFgnGrgLwIW0QC/mzcNKpcWkeBaKVZ1o9Mxzvx7CkjVcrHBfh2c/CunloYFhUTjYrJh316OXi4NnTuLSaj4N5XVBKRDAbTDQpCikAAAMKSURBVGje7dpnc9pAFIbhBUQRohtMbwZT3Huv6T0k5/9/TrQrpARs4iQ7M5nJvB9t3TMrLldCaDSfM/SfZT7XrD80zP7Zk4KLAiMoS0/OzJ+aDeGrqKmqp1Kpur4nfMDrCt/HkFcXYbzgZdE6E9gY1y3aIGwQ8Q30Dd4wARtTi5ZMAMc0qYUAjxpRkxrwMQntU6UBHpNQixaBHzWJXrSgYxJrLBGD3w1rEi0hx4RkSqanKu19lclCTFD8VilC78BItGXOUlKUTEoSQ78hicVoEunCVNvSJZnpnUV2Kklw1WitF3XvHBe9CqU5zDp1UmzKZIu+8ixO7aqatRhEmgfNGpdNSbS9vZjnY4RBilKQJIIWaQIJ0QMahUxlsihpCQRHJDSrJBFXNapAPk5Ek0ofAeOFVw4wMRUSISmQZCqRhlz20I0BRXZgIU8Z2OiLPKysRRpnrMcBmDilLGmojYxcA45EQa4hWDZ5cPJb05MwzEzJxFEw0jZF4pCImJRJQ0JI6RLByjm50AcmCxeFQmEiHOGnl1IIRpTcUHwsUxZa6FEyWXhIUWQMLRKUTAYMOUUWm5DNE+E9JOPmKfkktDCnZOPQIikK70OLtqhD0mJTZA4t5nRI7kPyICihjCAPERPMRcLQIcgGLDe5V2jhhyV38YH/7pvxQx4DLhL2FtkPdx8Cbt9zr3hhECEtyEu3yDDyuStkHjbk8tkp4r5CslnbPa/mLhDXFrKJbOzYFwhr0wGQzeU6sS9OkAZJNRhbH9nYGeLqJKdXQSM2yD7i8klU9LdIZXO1ndt2EWRA7kpUuwgd+yWHR8hnJPbXSxNM4VR9P+3IXj+lRsbpXh+6+lZDR91UXkJ8+1a1sJ6ZBxsjGqTWfwhrpmmR9X4MNKbRaP4+TNKfR6t3jK8SzK1/CHvL8rJkv4MGt0uiJexnlZfFfj0CHDVYf2o4vMxKsOhxXQKNkdYlEUtrr8siPy0TzZZgUoYF5pHqvtM+Lg3Ld9DV/Z+XpzNTtEyYfZf1fzQzRXP2G85D+tWLZ9MbAAAAAElFTkSuQmCC",
-
-  // Blue color - more vibrant for blueberry pancakes
-  blueImage:
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAMAAABHPGVmAAAA5FBMVEX/////gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv//gv+HQx0vAAAAS3RSTlMAAf3+5wQCAvr3CfMGEAvsPRwV9OncLSEO8by0n4wz7+LWmHNZVUcpHt/MvJ+cdFJENTAeGwkH9vDt2s7ErKKai2JXT0lAPy8jGY/Yk/d2AAADGUlEQVRo3u3a2VLbQBAFULUsWZb3fcd4wYBZQwhZCdnIQsj//1Bqhs2AQi6m1DXVNzwbnbJ6ZiRbEY8PDw+NH1X/8fjwoNEwfzGOrGMt6dDImv1i/IIWHVZ1mL8aDa20VrRptDYqmxZO0x1t5oJR0TYr40t9GJlw/mWE6hsMR2EqWmG4u1GYa+xhiBDXGHmYWbix+WfU5bNc+/7xDJOr4pN18H0YtNQaM/mKx19rPEq8AFEOE0NuX3b+kQy+BCDuwdRVJpOJyPxl19KT53gG2CiTeIZkKtVxp7TFdnKRjCdgNR1Yxm4XHSujEn+ZYBpymk7q7JgGO2Xa42w3RU7r7Aw5uSuRrCdE7JrESLcKaxl3SDSTjMbGUvgmZ7NSYrRXNnszY48/Yw82Bm9Uh+G1BivDVBWGoVsMUzUYA9PmDIMVGT2fYXoFhjFm8xGNHr+Gz1+s0RgwLfZI3HaLoeQ+REvqLpzWw5GDj1LMGfZYILH5JYtWFkxXkQPvtsfQCu6JudYKDKjFUGIfqR4fNdgC1WKWZw9j3oJKNBfqyMHVf7NRFJuUFyU1CifGDiVGXiOxjtbhSMyP0YcTcyURc6p9mhHnGOVNirGdQiPHSdZAY8YpoooM0VRmVC000Iw0SYSlGvKN5jwrhb13hmpwlIb23iPDUiOuYrfBmU+hhqVa3RRnJlWUGKbVaqWCkWnVCKUmqsCwiKcYfzYHl5fXXMlTbYafKfL0eeLHwFlfBx+ue+9uWxjPp9N5iSEpSkwreFbcgBErRk65CWSbF2KVgslolcxuJFhSFIXc68Boi+00Q/XVjdGqZBW+uzAgMZFRqp0N5JhL2+lwCw75VRnzSqvZTJqP9GbNlRm2F2lzMHdnPCjO7rEEq8FYw+6wN4zhdtq8w6xmO89bcKrV5hlmVhuqQDWG5fEOo8EwlR53A7UYpq/6jI4W43zU5RCwDNXlBl8C1uV4h9FieN5bj0u3CdVmeIrX5XiO1mYYHu8wGowzXxcH2PVU/0/1I+af/PHzwRPATfP8jFf58hi/2x/oO5wfXWMCvwAAAABJRU5ErkJggg==",
+  pizzaImage: imageFileToBase64('scripts/Pizza.png'),
+  toastImage: imageFileToBase64('scripts/Toasts.png'),
+  pastaImage: imageFileToBase64('scripts/Pasta.png'),
+  cakeImage: imageFileToBase64('scripts/Cake.png'),
+  pancakesImage: imageFileToBase64('scripts/pancakes.png'),
 };
 
 // Test recipes data
@@ -33,7 +33,7 @@ const testRecipes = [
     title: "Classic Margherita Pizza",
     description:
       "A simple yet delicious traditional Italian pizza with fresh mozzarella, tomatoes, and basil.",
-    imageData: recipeImages.redImage,
+    imageData: recipeImages.pizzaImage,
     prepTime: 25,
     cookTime: 15,
     servings: 4,
@@ -62,7 +62,7 @@ const testRecipes = [
     title: "Avocado Toast with Poached Egg",
     description:
       "A nutritious breakfast with creamy avocado and perfectly poached eggs.",
-    imageData: recipeImages.greenImage,
+    imageData: recipeImages.toastImage,
     prepTime: 10,
     cookTime: 5,
     servings: 2,
@@ -88,7 +88,7 @@ const testRecipes = [
   {
     title: "Lemon Garlic Butter Shrimp Pasta",
     description: "A quick and flavorful pasta dish with succulent shrimp.",
-    imageData: recipeImages.yellowImage,
+    imageData: recipeImages.pastaImage,
     prepTime: 15,
     cookTime: 20,
     servings: 4,
@@ -115,7 +115,7 @@ const testRecipes = [
   {
     title: "Chocolate Lava Cake",
     description: "Decadent chocolate dessert with a molten center.",
-    imageData: recipeImages.brownImage,
+    imageData: recipeImages.cakeImage,
     prepTime: 15,
     cookTime: 14,
     servings: 4,
@@ -143,7 +143,7 @@ const testRecipes = [
   {
     title: "Blueberry Pancakes",
     description: "Fluffy pancakes studded with juicy blueberries.",
-    imageData: recipeImages.blueImage,
+    imageData: recipeImages.pancakesImage,
     prepTime: 10,
     cookTime: 15,
     servings: 4,
