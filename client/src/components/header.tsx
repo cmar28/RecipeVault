@@ -98,8 +98,8 @@ const Header = ({ title, searchQuery, onSearch }: HeaderProps) => {
                 type="text" 
                 className={`transition-all duration-300 text-sm focus:outline-none border focus:ring-2 focus:ring-primary focus:ring-opacity-40 ${
                   isSearchFocused 
-                    ? 'w-full pl-4 pr-10 py-2.5 rounded-xl border-primary'
-                    : 'pl-10 pr-4 py-2 rounded-full bg-secondary border-transparent'
+                    ? 'w-full pl-4 pr-10 py-2.5 rounded-xl border-primary h-10'
+                    : 'pl-10 pr-4 py-2 rounded-full bg-secondary border-transparent h-10'
                 }`}
                 placeholder={isSearchFocused ? "Search by recipe name or description..." : "Search recipes"}
                 value={searchQuery}
@@ -123,14 +123,14 @@ const Header = ({ title, searchQuery, onSearch }: HeaderProps) => {
           {!isSearchFocused && (
             <div className="flex items-center ml-1">
               {loading ? (
-                <div className="h-6 w-6 rounded-full bg-secondary animate-pulse"></div>
+                <div className="h-9 w-9 rounded-full bg-secondary animate-pulse"></div>
               ) : currentUser ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-7 w-7 rounded-full p-0">
-                      <Avatar className="h-6 w-6">
+                    <Button variant="ghost" className="h-10 w-10 rounded-full p-0">
+                      <Avatar className="h-9 w-9">
                         <AvatarImage src={currentUser.photoURL || undefined} alt={currentUser.displayName || 'User'} />
-                        <AvatarFallback className="text-xs">{getUserInitials()}</AvatarFallback>
+                        <AvatarFallback className="text-sm">{getUserInitials()}</AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
@@ -153,10 +153,10 @@ const Header = ({ title, searchQuery, onSearch }: HeaderProps) => {
                   onClick={handleLogin} 
                   variant="ghost" 
                   size="sm"
-                  className="text-primary hover:text-primary-focus py-1 h-7"
+                  className="text-primary hover:text-primary-focus h-10 px-3"
                 >
-                  <User className="h-3.5 w-3.5 mr-1" />
-                  <span className="text-xs">Sign In</span>
+                  <User className="h-5 w-5 mr-2" />
+                  <span>Sign In</span>
                 </Button>
               )}
             </div>
