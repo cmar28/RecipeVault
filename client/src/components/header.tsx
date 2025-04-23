@@ -70,7 +70,12 @@ const Header = ({ title, searchQuery, onSearch }: HeaderProps) => {
             <ChefHat className="h-5 w-5" />
           </div>
           {!isSearchFocused && (
-            <h1 className="text-xl font-bold text-primary hidden sm:block">{title}</h1>
+            <>
+              <h1 className="text-xl font-bold text-primary hidden sm:block">{title}</h1>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-red-500 text-transparent bg-clip-text sm:hidden">
+                RK
+              </h1>
+            </>
           )}
         </div>
         

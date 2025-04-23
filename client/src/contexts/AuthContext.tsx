@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { User } from 'firebase/auth';
-import { auth, loginWithGoogle, logout, subscribeToAuthChanges, handleRedirectResult } from '@/lib/firebase';
+import { auth, loginWithGoogle, logout, subscribeToAuthChanges } from '@/lib/firebase';
 import { useToast } from "@/hooks/use-toast";
 
 // Define the shape of our context
@@ -57,30 +57,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Set up auth state listener on mount and handle redirect result
+  // Set up auth state listener on mount
   useEffect(() => {
-    const handleAuth = async () => {
-      try {
-        // Handle redirect result - this will run on page load after redirect from auth provider
-        const redirectUser = await handleRedirectResult();
-        if (redirectUser) {
-          setCurrentUser(redirectUser);
-          syncUserWithDatabase(redirectUser);
-        }
-      } catch (error) {
-        console.error("Error handling redirect:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Handle redirect authentication first
-    handleAuth();
-
-    // Set up auth state change listener
     const unsubscribe = subscribeToAuthChanges((user) => {
       setCurrentUser(user);
-      // Set loading to false again just in case
       setLoading(false);
       
       // If user is signed in, sync with database
@@ -96,9 +76,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Sign in with Google
   const signInWithGoogle = async () => {
     try {
-      // Just redirect to Google sign-in - no toast needed as there will be a page navigation
       await loginWithGoogle();
-      // We won't reach here as the page will redirect
+      toast({
+        title: "Success!",
+        description: "You have successfully signed in.",
+        duration: 3000,
+      });
     } catch (error) {
       console.error(error);
       toast({
