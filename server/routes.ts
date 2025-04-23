@@ -51,7 +51,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all recipes
   app.get("/api/recipes", async (req: Request, res: Response) => {
     try {
-      const recipes = await storage.getRecipes();
+      // Get user ID from Firebase Auth data if available
+      const userId = (req.headers['x-firebase-uid'] as string) || undefined;
+      const recipes = await storage.getRecipes(userId);
       res.json(recipes);
     } catch (error) {
       console.error("Error fetching recipes:", error);
@@ -68,7 +70,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid recipe ID" });
       }
       
-      const recipe = await storage.getRecipe(id);
+      // Get user ID from Firebase Auth data if available
+      const userId = (req.headers['x-firebase-uid'] as string) || undefined;
+      const recipe = await storage.getRecipe(id, userId);
       
       if (!recipe) {
         return res.status(404).json({ message: "Recipe not found" });

@@ -7,7 +7,7 @@ import {
   type InsertRecipe 
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, or, isNull } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -17,8 +17,8 @@ export interface IStorage {
   upsertUser(user: InsertUser): Promise<User>;
   
   // Recipe operations
-  getRecipes(): Promise<Recipe[]>;
-  getRecipe(id: number): Promise<Recipe | undefined>;
+  getRecipes(userId?: string): Promise<Recipe[]>;
+  getRecipe(id: number, userId?: string): Promise<Recipe | undefined>;
   createRecipe(recipe: InsertRecipe): Promise<Recipe>;
   updateRecipe(id: number, recipe: Partial<InsertRecipe>): Promise<Recipe | undefined>;
   deleteRecipe(id: number): Promise<boolean>;
@@ -54,13 +54,41 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Recipe operations
-  async getRecipes(): Promise<Recipe[]> {
-    return await db.select().from(recipes);
+  async getRecipes(userId?: string): Promise<Recipe[]> {
+    if (userId) {
+      // For authenticated users, return:
+      // 1. Public recipes (created_by is NULL)
+      // 2. User's own recipes (created_by equals userId)
+      return await db.select()
+        .from(recipes)
+        .where(
+          // Logic for: WHERE created_by IS NULL OR created_by = userId
+          or(
+            isNull(recipes.createdBy),
+            eq(recipes.createdBy, userId)
+          )
+        );
+    } else {
+      // For unauthenticated users, return only public recipes
+      return await db.select()
+        .from(recipes)
+        .where(isNull(recipes.createdBy));
+    }
   }
 
-  async getRecipe(id: number): Promise<Recipe | undefined> {
+  async getRecipe(id: number, userId?: string): Promise<Recipe | undefined> {
     const [recipe] = await db.select().from(recipes).where(eq(recipes.id, id));
-    return recipe || undefined;
+    
+    if (!recipe) return undefined;
+    
+    // Access control: recipe is visible if
+    // 1. It's a public recipe (created_by is NULL)
+    // 2. User is the creator (created_by equals userId)
+    if (recipe.createdBy === null || recipe.createdBy === userId) {
+      return recipe;
+    }
+    
+    return undefined; // User doesn't have access to this recipe
   }
 
   async createRecipe(insertRecipe: InsertRecipe): Promise<Recipe> {
