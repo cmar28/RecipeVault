@@ -159,26 +159,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log for debugging
       console.log(`Fetching recipe ${id} for user ${userId || 'anonymous'}`);
       
-      // First check if recipe exists regardless of access rights (for debugging)
-      const [rawRecipe] = await db.select().from(recipes).where(eq(recipes.id, id));
-      
-      if (rawRecipe) {
-        console.log(`Recipe ${id} exists, owned by: ${rawRecipe.createdBy || 'public'}`);
-      } else {
-        console.log(`Recipe ${id} does not exist in database`);
+      try {
+        const recipe = await storage.getRecipe(id, userId);
+        
+        if (!recipe) {
+          return res.status(404).json({ message: "Recipe not found" });
+        }
+        
+        res.json(recipe);
+      } catch (err: any) {
+        if (err.name === "PermissionError") {
+          return res.status(403).json({ message: err.message });
+        }
+        throw err; // Re-throw for the outer catch
       }
-      
-      const recipe = await storage.getRecipe(id, userId);
-      
-      if (!recipe) {
-        return res.status(404).json({ 
-          message: rawRecipe 
-            ? "You don't have permission to view this recipe" 
-            : "Recipe not found" 
-        });
-      }
-      
-      res.json(recipe);
     } catch (error) {
       console.error("Error fetching recipe:", error);
       res.status(500).json({ message: "Failed to fetch recipe" });

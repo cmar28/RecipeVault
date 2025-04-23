@@ -30,16 +30,18 @@ const RecipeDetail = () => {
 
   // Fetch recipe details
   const { data: recipe, isLoading, error } = useQuery<Recipe>({ 
-    queryKey: ['/api/recipes', numericId],
+    queryKey: [`/api/recipes/${numericId}`],
     queryFn: async (): Promise<Recipe> => {
       console.log("Fetching recipe with ID:", numericId);
-      const response = await fetch(`/api/recipes/${numericId}`);
-      if (!response.ok) {
-        throw new Error('Recipe not found');
+      try {
+        const response = await apiRequest("GET", `/api/recipes/${numericId}`);
+        const data = await response.json();
+        console.log("Recipe data received:", data);
+        return data as Recipe;
+      } catch (error) {
+        console.error("Error fetching recipe:", error);
+        throw error;
       }
-      const data = await response.json();
-      console.log("Recipe data received:", data);
-      return data as Recipe;
     },
     enabled: !isNaN(numericId)
   });
@@ -132,11 +134,21 @@ const RecipeDetail = () => {
   }
 
   if (error || !recipe) {
+    // Try to extract the error message from the error
+    let errorMsg = "The recipe you're looking for doesn't exist or has been removed.";
+    
+    if (error instanceof Error) {
+      const message = error.message;
+      if (message.includes("permission")) {
+        errorMsg = "You don't have permission to view this recipe.";
+      }
+    }
+    
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2">Recipe Not Found</h2>
-          <p className="mb-4">The recipe you're looking for doesn't exist or has been removed.</p>
+          <p className="mb-4">{errorMsg}</p>
           <Button onClick={handleBackToList}>Back to Recipes</Button>
         </div>
       </div>
@@ -180,21 +192,20 @@ const RecipeDetail = () => {
               onClick={() => {
                 const updatedRecipe = {...recipe, isFavorite: !recipe.isFavorite};
                 
-                // Call API to update the recipe's favorite status
-                apiRequest('PATCH', `/api/recipes/${recipe.id}`, {
-                  isFavorite: updatedRecipe.isFavorite
-                })
+                // Call API to toggle favorite status
+                apiRequest('POST', `/api/favorites/${recipe.id}`)
                 .then(() => {
                   // Refresh recipe data
-                  queryClient.invalidateQueries({ queryKey: ['/api/recipes', numericId] });
+                  queryClient.invalidateQueries({ queryKey: [`/api/recipes/${numericId}`] });
                   queryClient.invalidateQueries({ queryKey: ['/api/recipes'] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/favorites'] });
                   
                   // Show toast notification
                   toast({
-                    title: updatedRecipe.isFavorite ? "Added to favorites" : "Removed from favorites",
+                    title: updatedRecipe.isFavorite ? "Removed from favorites" : "Added to favorites",
                     description: updatedRecipe.isFavorite 
-                      ? `${recipe.title} has been added to your favorites.`
-                      : `${recipe.title} has been removed from your favorites.`,
+                      ? `${recipe.title} has been removed from your favorites.`
+                      : `${recipe.title} has been added to your favorites.`,
                     duration: 2000
                   });
                 })

@@ -129,7 +129,10 @@ export class DatabaseStorage implements IStorage {
       };
     }
     
-    return undefined; // User doesn't have access to this recipe
+    // The recipe exists but user doesn't have permission to view it
+    const error = new Error("You don't have permission to view this recipe");
+    error.name = "PermissionError";
+    throw error;
   }
 
   async createRecipe(insertRecipe: InsertRecipe): Promise<Recipe> {
