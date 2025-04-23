@@ -17,13 +17,17 @@ const Home = () => {
     queryKey: ['/api/recipes']
   });
   
+  // Fetch favorite recipes separately to ensure they're always up-to-date
+  const { data: favoriteRecipes = [] } = useQuery<Recipe[]>({
+    queryKey: ['/api/favorites'],
+    // Don't show loading state or error for favorites
+    staleTime: 10000 // 10 seconds
+  });
+  
   const filteredRecipes = recipes?.filter(recipe => 
     recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     recipe.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  // Gets favorite recipes from all recipes
-  const favoriteRecipes = recipes?.filter(recipe => recipe.isFavorite) || [];
 
   const handleAddNewRecipe = () => {
     setLocation("/create");

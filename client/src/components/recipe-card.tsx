@@ -19,13 +19,12 @@ const RecipeCard = ({ recipe }: RecipeCardProps) => {
   // Toggle favorite mutation
   const toggleFavoriteMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('PATCH', `/api/recipes/${recipe.id}`, {
-        isFavorite: !recipe.isFavorite
-      });
+      return await apiRequest('POST', `/api/favorites/${recipe.id}`);
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/favorites'] });
       
       // Show toast notification
       toast({

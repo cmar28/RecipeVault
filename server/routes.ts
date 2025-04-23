@@ -85,6 +85,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch recipes" });
     }
   });
+  
+  // Get user's favorite recipes
+  app.get("/api/favorites", async (req: Request, res: Response) => {
+    try {
+      // Get user ID from Firebase Auth
+      const userId = req.headers['x-firebase-uid'] as string;
+      
+      // Require authentication for favorites
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required to access favorites" });
+      }
+      
+      const favorites = await storage.getFavoriteRecipes(userId);
+      res.json(favorites);
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+      res.status(500).json({ message: "Failed to fetch favorites" });
+    }
+  });
+  
+  // Toggle a recipe as favorite/unfavorite
+  app.post("/api/favorites/:recipeId", async (req: Request, res: Response) => {
+    try {
+      const recipeId = parseInt(req.params.recipeId);
+      
+      if (isNaN(recipeId)) {
+        return res.status(400).json({ message: "Invalid recipe ID" });
+      }
+      
+      // Get user ID from Firebase Auth
+      const userId = req.headers['x-firebase-uid'] as string;
+      
+      // Require authentication for toggling favorites
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required to manage favorites" });
+      }
+      
+      // Check if recipe exists and user has access to it
+      const recipe = await storage.getRecipe(recipeId, userId);
+      
+      if (!recipe) {
+        return res.status(404).json({ message: "Recipe not found" });
+      }
+      
+      // Toggle favorite status
+      const isFavorite = await storage.toggleFavorite(userId, recipeId);
+      
+      res.json({ 
+        recipeId, 
+        isFavorite 
+      });
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      res.status(500).json({ message: "Failed to update favorite status" });
+    }
+  });
 
   // Get a specific recipe
   app.get("/api/recipes/:id", async (req: Request, res: Response) => {

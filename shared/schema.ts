@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, varchar, timestamp, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -23,9 +23,16 @@ export const recipes = pgTable("recipes", {
   servings: integer("servings"),
   ingredients: text("ingredients").array(),
   instructions: text("instructions").array(),
-  isFavorite: boolean("is_favorite").default(false),
   createdBy: varchar("created_by").references(() => users.uid), // Reference to Firebase user ID
 });
+
+// User favorite recipes - junction table for many-to-many relationship
+export const userFavorites = pgTable("user_favorites", {
+  userId: varchar("user_id").notNull().references(() => users.uid),
+  recipeId: integer("recipe_id").notNull().references(() => recipes.id),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.userId, t.recipeId] })
+}));
 
 export const insertUserSchema = createInsertSchema(users);
 
@@ -33,8 +40,13 @@ export const insertRecipeSchema = createInsertSchema(recipes).omit({
   id: true,
 });
 
+export const insertUserFavoriteSchema = createInsertSchema(userFavorites);
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 export type InsertRecipe = z.infer<typeof insertRecipeSchema>;
-export type Recipe = typeof recipes.$inferSelect;
+export type Recipe = typeof recipes.$inferSelect & { isFavorite?: boolean }; // Add virtual field for client
+
+export type InsertUserFavorite = z.infer<typeof insertUserFavoriteSchema>;
+export type UserFavorite = typeof userFavorites.$inferSelect;
