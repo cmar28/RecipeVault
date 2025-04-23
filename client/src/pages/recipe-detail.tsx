@@ -17,7 +17,8 @@ import {
   Utensils,
   ListOrdered,
   BookOpen,
-  Circle
+  Circle,
+  Heart
 } from "lucide-react";
 
 const RecipeDetail = () => {
