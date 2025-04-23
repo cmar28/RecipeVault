@@ -1,6 +1,17 @@
 import { useState, useEffect } from "react";
-import { Search, ChefHat, X } from "lucide-react";
+import { Search, ChefHat, X, LogOut, User } from "lucide-react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 type HeaderProps = {
   title: string;
@@ -12,6 +23,7 @@ const Header = ({ title, searchQuery, onSearch }: HeaderProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [, setLocation] = useLocation();
+  const { currentUser, loading, logOut } = useAuth();
 
   // Track scroll position for header styling
   useEffect(() => {
@@ -25,6 +37,21 @@ const Header = ({ title, searchQuery, onSearch }: HeaderProps) => {
 
   const handleHomeClick = () => {
     setLocation('/');
+  };
+
+  const handleLogin = () => {
+    setLocation('/login');
+  };
+
+  // Get user initials for avatar fallback
+  const getUserInitials = () => {
+    if (!currentUser?.displayName) return "U";
+    return currentUser.displayName
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
   };
 
   return (
@@ -52,10 +79,10 @@ const Header = ({ title, searchQuery, onSearch }: HeaderProps) => {
           )}
         </div>
         
-        {/* Search Area - Expands on mobile when focused */}
+        {/* Middle Area - Search */}
         <div 
           className={`relative transition-all duration-300 ${
-            isSearchFocused ? 'w-full mx-2' : 'w-auto'
+            isSearchFocused ? 'flex-1 mx-2' : 'w-auto'
           }`}
         >
           <div className="relative flex items-center">
@@ -89,6 +116,46 @@ const Header = ({ title, searchQuery, onSearch }: HeaderProps) => {
             )}
           </div>
         </div>
+
+        {/* Right Area - Auth */}
+        {!isSearchFocused && (
+          <div className="flex items-center ml-2">
+            {loading ? (
+              <div className="h-8 w-8 rounded-full bg-secondary animate-pulse"></div>
+            ) : currentUser ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 rounded-full p-0">
+                    <Avatar>
+                      <AvatarImage src={currentUser.photoURL || undefined} alt={currentUser.displayName || 'User'} />
+                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>
+                    {currentUser.displayName || currentUser.email}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logOut} className="text-red-600">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button 
+                onClick={handleLogin} 
+                variant="ghost" 
+                size="sm"
+                className="text-primary hover:text-primary-focus"
+              >
+                <User className="h-4 w-4 mr-1" />
+                Sign In
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );
