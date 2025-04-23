@@ -1,10 +1,12 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertRecipeSchema, insertUserSchema } from "@shared/schema";
+import { db } from "./db";
+import { recipes, insertRecipeSchema, insertUserSchema } from "@shared/schema";
 import multer from "multer";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { eq } from "drizzle-orm";
 
 // Configure multer for memory storage
 const upload = multer({
@@ -153,10 +155,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get user ID from Firebase Auth data if available
       const userId = (req.headers['x-firebase-uid'] as string) || undefined;
+      
+      // Log for debugging
+      console.log(`Fetching recipe ${id} for user ${userId || 'anonymous'}`);
+      
+      // First check if recipe exists regardless of access rights (for debugging)
+      const [rawRecipe] = await db.select().from(recipes).where(eq(recipes.id, id));
+      
+      if (rawRecipe) {
+        console.log(`Recipe ${id} exists, owned by: ${rawRecipe.createdBy || 'public'}`);
+      } else {
+        console.log(`Recipe ${id} does not exist in database`);
+      }
+      
       const recipe = await storage.getRecipe(id, userId);
       
       if (!recipe) {
-        return res.status(404).json({ message: "Recipe not found" });
+        return res.status(404).json({ 
+          message: rawRecipe 
+            ? "You don't have permission to view this recipe" 
+            : "Recipe not found" 
+        });
       }
       
       res.json(recipe);
