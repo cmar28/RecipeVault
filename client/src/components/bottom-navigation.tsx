@@ -18,19 +18,14 @@ const BottomNavigation = ({ activeItem, onAddNew }: BottomNavigationProps) => {
   });
   
   useEffect(() => {
-    // Set indicator position based on active item
-    switch(activeItem) {
-      case 'recipes':
-        setIndicatorStyle({ left: '16.6%', width: '16.6%' });
-        break;
-      case 'add':
-        setIndicatorStyle({ left: '50%', width: '0%' });
-        break;
-      case 'favorites':
-        setIndicatorStyle({ left: '66.6%', width: '16.6%' });
-        break;
-      default:
-        setIndicatorStyle({ left: '16.6%', width: '16.6%' });
+    // Set indicator width based on active item
+    // Position is controlled by CSS (centered with left: 50%, transform: translateX(-50%))
+    if (activeItem === 'recipes') {
+      setIndicatorStyle({ left: '50%', width: '3rem' });
+    } else if (activeItem === 'favorites') {
+      setIndicatorStyle({ left: '50%', width: '3rem' });
+    } else {
+      setIndicatorStyle({ left: '50%', width: '0' });
     }
   }, [activeItem]);
 
@@ -68,7 +63,6 @@ const BottomNavigation = ({ activeItem, onAddNew }: BottomNavigationProps) => {
       <div 
         className="nav-indicator"
         style={{
-          transform: `translateX(${indicatorStyle.left})`,
           width: indicatorStyle.width,
         }}
       />

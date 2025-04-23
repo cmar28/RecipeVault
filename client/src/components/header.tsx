@@ -79,83 +79,89 @@ const Header = ({ title, searchQuery, onSearch }: HeaderProps) => {
           )}
         </div>
         
-        {/* Middle Area - Search */}
-        <div 
-          className={`relative transition-all duration-300 ${
-            isSearchFocused ? 'flex-1 mx-2' : 'w-auto'
-          }`}
-        >
-          <div className="relative flex items-center">
-            {!isSearchFocused && (
-              <Search 
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary h-4 w-4" 
+        {/* Right Side: Search & Auth */}
+        <div className="flex items-center gap-2">
+          {/* Search Area - Now aligned right */}
+          <div 
+            className={`relative transition-all duration-300 ${
+              isSearchFocused ? 'flex-1 w-60 sm:w-72' : 'w-auto'
+            }`}
+          >
+            <div className="relative flex items-center">
+              {!isSearchFocused && (
+                <Search 
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary h-4 w-4" 
+                />
+              )}
+              
+              <input 
+                type="text" 
+                className={`transition-all duration-300 text-sm focus:outline-none border focus:ring-2 focus:ring-primary focus:ring-opacity-40 ${
+                  isSearchFocused 
+                    ? 'w-full pl-4 pr-10 py-2.5 rounded-xl border-primary'
+                    : 'pl-10 pr-4 py-2 rounded-full bg-secondary border-transparent'
+                }`}
+                placeholder={isSearchFocused ? "Search by recipe name or description..." : "Search recipes"}
+                value={searchQuery}
+                onChange={(e) => onSearch(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
               />
-            )}
-            
-            <input 
-              type="text" 
-              className={`transition-all duration-300 text-sm focus:outline-none border focus:ring-2 focus:ring-primary focus:ring-opacity-40 ${
-                isSearchFocused 
-                  ? 'w-full pl-4 pr-10 py-2.5 rounded-xl border-primary'
-                  : 'pl-10 pr-4 py-2 rounded-full bg-secondary border-transparent'
-              }`}
-              placeholder={isSearchFocused ? "Search by recipe name or description..." : "Search recipes"}
-              value={searchQuery}
-              onChange={(e) => onSearch(e.target.value)}
-              onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-            />
-            
-            {isSearchFocused && searchQuery && (
-              <button
-                className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                onClick={() => onSearch('')}
-              >
-                <X className="h-4 w-4 text-muted-foreground hover:text-primary" />
-              </button>
-            )}
+              
+              {isSearchFocused && searchQuery && (
+                <button
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                  onClick={() => onSearch('')}
+                >
+                  <X className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Right Area - Auth */}
-        {!isSearchFocused && (
-          <div className="flex items-center ml-2">
-            {loading ? (
-              <div className="h-8 w-8 rounded-full bg-secondary animate-pulse"></div>
-            ) : currentUser ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 rounded-full p-0">
-                    <Avatar>
-                      <AvatarImage src={currentUser.photoURL || undefined} alt={currentUser.displayName || 'User'} />
-                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>
-                    {currentUser.displayName || currentUser.email}
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logOut} className="text-red-600">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button 
-                onClick={handleLogin} 
-                variant="ghost" 
-                size="sm"
-                className="text-primary hover:text-primary-focus"
-              >
-                <User className="h-4 w-4 mr-1" />
-                Sign In
-              </Button>
-            )}
-          </div>
-        )}
+          {/* Auth - Smaller user icon */}
+          {!isSearchFocused && (
+            <div className="flex items-center ml-1">
+              {loading ? (
+                <div className="h-6 w-6 rounded-full bg-secondary animate-pulse"></div>
+              ) : currentUser ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-7 w-7 rounded-full p-0">
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={currentUser.photoURL || undefined} alt={currentUser.displayName || 'User'} />
+                        <AvatarFallback className="text-xs">{getUserInitials()}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="text-sm font-normal">
+                      <div className="flex flex-col">
+                        <span className="font-medium">{currentUser.displayName || 'User'}</span>
+                        <span className="text-xs text-muted-foreground truncate">{currentUser.email}</span>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logOut} className="text-red-600">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button 
+                  onClick={handleLogin} 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-primary hover:text-primary-focus py-1 h-7"
+                >
+                  <User className="h-3.5 w-3.5 mr-1" />
+                  <span className="text-xs">Sign In</span>
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
