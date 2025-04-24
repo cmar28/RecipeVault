@@ -8,6 +8,8 @@ import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { eq } from "drizzle-orm";
 import { verifyFirebaseToken } from "./firebase-admin";
+import axios from "axios";
+import { log } from "./vite";
 
 // Configure multer for memory storage
 const upload = multer({
@@ -16,6 +18,53 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
 });
+
+// Python AI service configuration
+const AI_SERVICE_URL = 'http://localhost:5050';
+
+// Helper function to verify recipe image with Python AI service
+async function verifyRecipeImage(base64Image: string): Promise<{ success: boolean; message: string; is_recipe?: boolean }> {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/verify`, {
+      image: base64Image,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error verifying recipe image:", error);
+    return { 
+      success: false, 
+      message: "Failed to verify recipe image. Please try again."
+    };
+  }
+}
+
+// Helper function to extract recipe data from image with Python AI service
+async function extractRecipeFromImage(base64Image: string): Promise<{ 
+  success: boolean; 
+  message?: string; 
+  recipe?: {
+    title: string;
+    description: string;
+    cookingTimeMinutes: number;
+    difficulty: string;
+    ingredients: string[];
+    instructions: string[];
+    servings: number;
+  } 
+}> {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/extract`, {
+      image: base64Image,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error extracting recipe from image:", error);
+    return { 
+      success: false, 
+      message: "Failed to extract recipe data from image. Please try again."
+    };
+  }
+}
 
 // Middleware to verify and extract Firebase token
 const firebaseAuthMiddleware = async (req: Request, res: Response, next: NextFunction) => {
@@ -53,6 +102,84 @@ const firebaseAuthMiddleware = async (req: Request, res: Response, next: NextFun
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply the Firebase auth middleware to all routes
   app.use(firebaseAuthMiddleware);
+  
+  // Upload and process recipe image
+  app.post("/api/recipes/from-image", upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      // Get user ID from Firebase Auth
+      const userId = req.headers['x-firebase-uid'] as string;
+      
+      // Require authentication
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required to create recipes" });
+      }
+      
+      // Ensure the file was provided
+      if (!req.file) {
+        return res.status(400).json({ message: "No image file provided" });
+      }
+      
+      // Convert the file buffer to base64
+      const base64Image = req.file.buffer.toString('base64');
+      
+      // Verify it's a recipe image
+      log("Verifying if image contains a recipe");
+      const verificationResult = await verifyRecipeImage(base64Image);
+      
+      if (!verificationResult.success) {
+        return res.status(500).json({ 
+          message: verificationResult.message || "Failed to verify recipe image" 
+        });
+      }
+      
+      if (!verificationResult.is_recipe) {
+        return res.status(400).json({ 
+          message: "The uploaded image does not appear to contain a recipe. Please try a different image." 
+        });
+      }
+      
+      // Extract recipe data from image
+      log("Extracting recipe data from image");
+      const extractionResult = await extractRecipeFromImage(base64Image);
+      
+      if (!extractionResult.success || !extractionResult.recipe) {
+        return res.status(500).json({ 
+          message: extractionResult.message || "Failed to extract recipe data from image" 
+        });
+      }
+      
+      // Convert the extracted recipe to our schema format
+      const recipeData = {
+        title: extractionResult.recipe.title,
+        description: extractionResult.recipe.description,
+        cookingTime: extractionResult.recipe.cookingTimeMinutes,
+        difficulty: extractionResult.recipe.difficulty.toLowerCase(),
+        ingredients: extractionResult.recipe.ingredients.join('\n'),
+        instructions: extractionResult.recipe.instructions.join('\n'),
+        servings: extractionResult.recipe.servings,
+        imageUrl: null, // No image is stored
+        createdBy: userId
+      };
+      
+      // Create the recipe in the database
+      const validatedData = insertRecipeSchema.parse(recipeData);
+      const newRecipe = await storage.createRecipe(validatedData);
+      
+      // Return the created recipe
+      res.status(201).json({
+        recipe: newRecipe,
+        message: "Recipe successfully created from image"
+      });
+      
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      console.error("Error creating recipe from image:", error);
+      res.status(500).json({ message: "Failed to create recipe from image" });
+    }
+  });
   // Firebase User API endpoints
   // Sync user data from Firebase Auth to our database
   app.post("/api/users/sync", async (req: Request, res: Response) => {
