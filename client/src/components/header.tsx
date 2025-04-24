@@ -80,8 +80,8 @@ const Header = ({ title, searchQuery, onSearch }: HeaderProps) => {
         </div>
         
         {/* Right Side: Search & Auth */}
-        <div className="flex items-center gap-2">
-          {/* Search Area - Now aligned right */}
+        <div className="flex items-center gap-3 sm:gap-2">
+          {/* Search Area - Now aligned right with more spacing on mobile */}
           <div 
             className={`relative transition-all duration-300 ${
               isSearchFocused ? 'flex-1 w-60 sm:w-72' : 'w-auto'
@@ -99,9 +99,9 @@ const Header = ({ title, searchQuery, onSearch }: HeaderProps) => {
                 className={`transition-all duration-300 text-sm focus:outline-none border focus:ring-2 focus:ring-primary focus:ring-opacity-40 ${
                   isSearchFocused 
                     ? 'w-full pl-4 pr-10 py-2.5 rounded-xl border-primary h-10'
-                    : 'pl-10 pr-4 py-2 rounded-full bg-secondary border-transparent h-10'
+                    : 'pl-10 pr-4 py-2 rounded-full bg-secondary border-transparent h-10 w-44 sm:w-auto'
                 }`}
-                placeholder={isSearchFocused ? "Search by recipe name or description..." : "Search recipes"}
+                placeholder={isSearchFocused ? "Search by recipe name or description..." : "Search..."}
                 value={searchQuery}
                 onChange={(e) => onSearch(e.target.value)}
                 onFocus={() => setIsSearchFocused(true)}
