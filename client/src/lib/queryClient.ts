@@ -15,9 +15,9 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
     const currentUser = auth.currentUser;
     if (currentUser) {
-      // Get the Firebase user ID to use as a token
-      // In a real app, we would use getIdToken() for a proper JWT
-      headers["Authorization"] = `Bearer ${currentUser.uid}`;
+      // Get a proper Firebase JWT token
+      const token = await currentUser.getIdToken();
+      headers["Authorization"] = `Bearer ${token}`;
     }
   } catch (error) {
     console.error("Error getting auth token:", error);

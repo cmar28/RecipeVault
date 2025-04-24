@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
@@ -7,6 +7,7 @@ import multer from "multer";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { eq } from "drizzle-orm";
+import { verifyFirebaseToken } from "./firebase-admin";
 
 // Configure multer for memory storage
 const upload = multer({
@@ -16,25 +17,35 @@ const upload = multer({
   },
 });
 
-// Middleware to extract Firebase token from Authorization header
-const firebaseAuthMiddleware = (req: Request, res: Response, next: Function) => {
+// Middleware to verify and extract Firebase token
+const firebaseAuthMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Extract the Firebase user ID from the Authorization header
+    // Extract the Firebase ID token from the Authorization header
     const authHeader = req.headers.authorization;
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      // Simple extraction - in a real app, we would validate the token
-      // Here we're just assuming client is correctly sending the user ID
-      const token = authHeader.split(' ')[1];
-      if (token) {
-        // Set the user ID as a request header for easy access
-        req.headers['x-firebase-uid'] = token;
+      const idToken = authHeader.split(' ')[1];
+      
+      // Verify the Firebase ID token
+      const decodedToken = await verifyFirebaseToken(idToken);
+      
+      if (decodedToken) {
+        // Set the user ID as a request header for easy access in routes
+        req.headers['x-firebase-uid'] = decodedToken.uid;
+        
+        // For debugging
+        console.log(`Authenticated request from user: ${decodedToken.uid}`);
+      } else {
+        console.warn('Invalid Firebase token provided');
+        // Don't set the user ID if token is invalid
+        // This will cause protected routes to return 401
       }
     }
     
     next();
   } catch (error) {
     console.error('Error in Firebase auth middleware:', error);
+    // Continue without authentication in case of error
     next();
   }
 };
