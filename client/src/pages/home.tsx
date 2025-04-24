@@ -1,16 +1,19 @@
 import { useEffect, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Plus, ChevronRight, TrendingUp, ThumbsUp } from "lucide-react";
+import { Plus, ChevronRight, ThumbsUp } from "lucide-react";
 import Header from "@/components/header";
 import BottomNavigation from "@/components/bottom-navigation";
 import RecipeList from "@/components/recipe-list";
 import RecipeCard from "@/components/recipe-card";
+import PhotoOptionsModal from "@/components/photo-options-modal";
 import { Recipe } from "@shared/schema";
 
 const Home = () => {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const clearSearchRef = useRef<HTMLButtonElement>(null);
   
   // Fetch all recipes
@@ -31,11 +34,30 @@ const Home = () => {
   );
 
   const handleAddNewRecipe = () => {
-    setLocation("/create");
+    setIsPhotoModalOpen(true);
   };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+  };
+
+  const handlePhotoOptionSelected = (option: "camera" | "upload") => {
+    if (option === "camera") {
+      // To be implemented in a future update
+      alert("Camera functionality will be available in a future update");
+    } else if (option === "upload") {
+      // Trigger file input click
+      fileInputRef.current?.click();
+    }
+  };
+
+  const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // For now, we'll just navigate to the create page as a placeholder
+      // Later we'll process the file first
+      setLocation("/create");
+    }
   };
 
   // Clear search handler
@@ -82,6 +104,15 @@ const Home = () => {
               </button>
             </div>
           )}
+          
+          {/* Hidden file input for photo upload */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelected}
+            accept="image/*"
+            className="hidden"
+          />
           
           {/* Floating action button for adding new recipes */}
           <button 
@@ -136,6 +167,13 @@ const Home = () => {
       </main>
       
       <BottomNavigation activeItem="recipes" onAddNew={handleAddNewRecipe} />
+      
+      {/* Photo Options Modal */}
+      <PhotoOptionsModal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        onSelectOption={handlePhotoOptionSelected}
+      />
     </div>
   );
 };
