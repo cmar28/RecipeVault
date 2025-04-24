@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Plus, ChevronRight, ThumbsUp } from "lucide-react";
 import Header from "@/components/header";
@@ -8,13 +8,18 @@ import RecipeList from "@/components/recipe-list";
 import RecipeCard from "@/components/recipe-card";
 import PhotoOptionsModal from "@/components/photo-options-modal";
 import { Recipe } from "@shared/schema";
+import { uploadRecipeImage } from "@/utils/recipe-image-service";
+import { useToast } from "@/hooks/use-toast";
 
 const Home = () => {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const clearSearchRef = useRef<HTMLButtonElement>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Fetch all recipes
   const { data: recipes, isLoading, error } = useQuery<Recipe[]>({ 
@@ -26,6 +31,38 @@ const Home = () => {
     queryKey: ['/api/favorites'],
     // Don't show loading state or error for favorites
     staleTime: 10000 // 10 seconds
+  });
+  
+  // Setup mutation for recipe image upload
+  const uploadMutation = useMutation({
+    mutationFn: uploadRecipeImage,
+    onSuccess: (data) => {
+      // Show success toast
+      toast({
+        title: "Recipe created!",
+        description: "Your recipe has been successfully created from the image",
+        duration: 3000,
+      });
+      
+      // Invalidate recipes query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['/api/recipes'] });
+      
+      // Navigate to the newly created recipe
+      setLocation(`/recipe/${data.recipe.id}`);
+    },
+    onError: (error: Error) => {
+      // Show error toast
+      toast({
+        title: "Error creating recipe",
+        description: error.message || "There was a problem processing your image",
+        variant: "destructive",
+        duration: 5000,
+      });
+    },
+    onSettled: () => {
+      // Reset loading state
+      setIsProcessingImage(false);
+    }
   });
   
   const filteredRecipes = recipes?.filter(recipe => 
@@ -54,9 +91,23 @@ const Home = () => {
   const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // For now, we'll just navigate to the create page as a placeholder
-      // Later we'll process the file first
-      setLocation("/create");
+      // Show loading toast
+      toast({
+        title: "Processing recipe",
+        description: "Your image is being analyzed...",
+        duration: 5000,
+      });
+      
+      // Set loading state
+      setIsProcessingImage(true);
+      
+      // Upload and process the image
+      uploadMutation.mutate(file);
+      
+      // Reset the file input so the same file can be selected again
+      if (event.target) {
+        event.target.value = '';
+      }
     }
   };
 
@@ -173,6 +224,7 @@ const Home = () => {
         isOpen={isPhotoModalOpen}
         onClose={() => setIsPhotoModalOpen(false)}
         onSelectOption={handlePhotoOptionSelected}
+        isLoading={isProcessingImage}
       />
     </div>
   );

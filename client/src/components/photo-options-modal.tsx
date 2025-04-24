@@ -1,4 +1,4 @@
-import { Camera, Upload } from "lucide-react";
+import { Camera, Upload, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,12 +11,14 @@ type PhotoOptionsModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSelectOption: (option: "camera" | "upload") => void;
+  isLoading?: boolean;
 };
 
 const PhotoOptionsModal = ({
   isOpen,
   onClose,
   onSelectOption,
+  isLoading = false,
 }: PhotoOptionsModalProps) => {
   const handleSelectCamera = () => {
     onSelectOption("camera");
@@ -27,6 +29,25 @@ const PhotoOptionsModal = ({
     onSelectOption("upload");
     onClose();
   };
+
+  // If loading, show a processing message
+  if (isLoading) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl">Processing Recipe</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center py-8">
+            <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+            <p className="text-center text-muted-foreground">
+              Please wait while we analyze your recipe image...
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
