@@ -75,19 +75,26 @@ const firebaseAuthMiddleware = async (req: Request, res: Response, next: NextFun
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const idToken = authHeader.split(' ')[1];
       
-      // Verify the Firebase ID token
-      const decodedToken = await verifyFirebaseToken(idToken);
-      
-      if (decodedToken) {
-        // Set the user ID as a request header for easy access in routes
-        req.headers['x-firebase-uid'] = decodedToken.uid;
+      try {
+        // Verify the Firebase ID token
+        const decodedToken = await verifyFirebaseToken(idToken);
         
-        // For debugging
-        console.log(`Authenticated request from user: ${decodedToken.uid}`);
-      } else {
-        console.warn('Invalid Firebase token provided');
-        // Don't set the user ID if token is invalid
-        // This will cause protected routes to return 401
+        if (decodedToken) {
+          // Set the user ID as a request header for easy access in routes
+          req.headers['x-firebase-uid'] = decodedToken.uid;
+          
+          // For debugging
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Authenticated request from user: ${decodedToken.uid}`);
+          }
+        } else {
+          console.warn('Invalid Firebase token provided');
+          // Don't set the user ID if token is invalid
+          // This will cause protected routes to return 401
+        }
+      } catch (tokenError) {
+        console.error('Error verifying token:', tokenError);
+        // Don't set user ID on verification error
       }
     }
     
