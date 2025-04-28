@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Home, Camera, Heart, Menu } from "lucide-react";
+import { Home, Camera, Heart, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 
 type BottomNavigationProps = {
@@ -43,9 +43,9 @@ const BottomNavigation = ({ activeItem, onAddNew }: BottomNavigationProps) => {
     }
   };
   
-  const handleAddClick = () => {
+  const handleCameraClick = () => {
     // Add animation effect before triggering the add action
-    const button = document.querySelector('.add-button');
+    const button = document.querySelector('.camera-button');
     if (button) {
       button.classList.add('animate-pulse');
       setTimeout(() => {
@@ -55,6 +55,10 @@ const BottomNavigation = ({ activeItem, onAddNew }: BottomNavigationProps) => {
     } else {
       onAddNew();
     }
+  };
+  
+  const handleAddManuallyClick = () => {
+    setLocation("/create");
   };
 
   return (
@@ -82,19 +86,30 @@ const BottomNavigation = ({ activeItem, onAddNew }: BottomNavigationProps) => {
         <span className="text-xs mt-1">Home</span>
       </button>
       
-      {/* Add New Button - Center circular button */}
+      {/* Add New Button - Manual add with + icon */}
+      <button
+        className={`flex flex-col items-center justify-center w-full h-full relative transition-colors duration-200`}
+        onClick={handleAddManuallyClick}
+      >
+        <Plus 
+          className="h-5 w-5 transition-all duration-200 text-muted-foreground" 
+        />
+        <span className="text-xs mt-1 text-muted-foreground">Add</span>
+      </button>
+      
+      {/* Camera Button - Center circular button */}
       <div className="relative w-full flex justify-center">
         <button 
-          className="add-button absolute -top-8 bg-primary text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 hover:scale-105 active:scale-95"
-          onClick={handleAddClick}
-          aria-label="Add new recipe"
+          className="camera-button absolute -top-8 bg-primary text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 hover:scale-105 active:scale-95"
+          onClick={handleCameraClick}
+          aria-label="Add recipe from image"
         >
           <Camera className="h-8 w-8" />
         </button>
         
         {/* Placeholder to maintain layout */}
         <div className="h-full w-full invisible">
-          <span className="text-xs mt-1">Add</span>
+          <span className="text-xs mt-1">Camera</span>
         </div>
       </div>
       
