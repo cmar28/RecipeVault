@@ -81,11 +81,13 @@ const firebaseAuthMiddleware = async (req: Request, res: Response, next: NextFun
         
         if (decodedToken) {
           // Set the user ID as a request header for easy access in routes
-          req.headers['x-firebase-uid'] = decodedToken.uid;
+          // Make sure we're using the uid property from the decoded token
+          const userId = decodedToken.uid || decodedToken.user_id;
+          req.headers['x-firebase-uid'] = userId;
           
           // For debugging
           if (process.env.NODE_ENV === 'development') {
-            console.log(`Authenticated request from user: ${decodedToken.uid}`);
+            console.log(`Authenticated request from user: ${userId}`);
           }
         } else {
           console.warn('Invalid Firebase token provided');

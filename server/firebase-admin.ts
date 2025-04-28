@@ -22,7 +22,25 @@ export async function verifyFirebaseToken(token: string): Promise<DecodedIdToken
   try {
     // In development, let's check if we have a proper Firebase token
     if (process.env.NODE_ENV === 'development' && token.startsWith('eyJ')) {
-      // Looks like a JWT, let's try to verify it
+      try {
+        // For development only: Extract user_id from JWT without verification
+        // This is for development convenience only
+        const tokenParts = token.split('.');
+        if (tokenParts.length >= 2) {
+          const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+          if (payload && payload.user_id) {
+            console.log('Development mode: Extracted user_id from JWT');
+            return { 
+              uid: payload.user_id,
+              user_id: payload.user_id
+            } as any;
+          }
+        }
+      } catch (err) {
+        console.error('Error extracting user_id from JWT:', err);
+      }
+      
+      // Fall back to regular verification
       return await auth.verifyIdToken(token);
     } else if (process.env.NODE_ENV === 'development') {
       // Development fallback for easier testing
