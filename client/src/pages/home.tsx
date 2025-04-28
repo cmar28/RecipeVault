@@ -70,8 +70,14 @@ const Home = () => {
     recipe.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Handler for the bottom center button (camera)
   const handleAddNewRecipe = () => {
     setIsPhotoModalOpen(true);
+  };
+  
+  // Handler for the floating action button (plus)
+  const handleManualAddRecipe = () => {
+    setLocation('/recipe/new');
   };
 
   const handleSearch = (query: string) => {
@@ -165,12 +171,12 @@ const Home = () => {
             className="hidden"
           />
           
-          {/* Floating action button for adding new recipes */}
+          {/* Floating action button for manually adding new recipes */}
           <button 
             className="fab-button"
-            onClick={handleAddNewRecipe}
-            data-action="add-recipe"
-            aria-label="Add new recipe"
+            onClick={handleManualAddRecipe}
+            data-action="add-recipe-manual"
+            aria-label="Create new recipe manually"
           >
             <Plus className="h-6 w-6" />
           </button>

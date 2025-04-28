@@ -23,7 +23,15 @@ const Favorites = () => {
   );
 
   const handleAddNewRecipe = () => {
-    setLocation("/create");
+    setLocation("/");
+    // Show the photo options modal through a custom event
+    // This allows us to trigger the modal from the home page
+    window.dispatchEvent(new CustomEvent('show-photo-modal'));
+  };
+  
+  // Handler for the floating action button (plus)
+  const handleManualAddRecipe = () => {
+    setLocation('/recipe/new');
   };
 
   const handleSearch = (query: string) => {
