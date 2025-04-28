@@ -1,15 +1,21 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { ArrowLeft, ThumbsUp, Plus } from "lucide-react";
 import Header from "@/components/header";
 import BottomNavigation from "@/components/bottom-navigation";
 import RecipeList from "@/components/recipe-list";
+import PhotoOptionsModal from "@/components/photo-options-modal";
 import { Recipe } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 const Favorites = () => {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   
   // Fetch favorite recipes
   const { data: favoriteRecipes = [], isLoading, error } = useQuery<Recipe[]>({
@@ -23,10 +29,32 @@ const Favorites = () => {
   );
 
   const handleAddNewRecipe = () => {
-    setLocation("/");
-    // Show the photo options modal through a custom event
-    // This allows us to trigger the modal from the home page
-    window.dispatchEvent(new CustomEvent('show-photo-modal'));
+    setIsPhotoModalOpen(true);
+  };
+  
+  const handlePhotoOptionSelected = (option: "camera" | "upload") => {
+    if (option === "camera") {
+      // To be implemented in a future update
+      alert("Camera functionality will be available in a future update");
+    } else if (option === "upload") {
+      // Trigger file input click
+      fileInputRef.current?.click();
+    }
+  };
+
+  const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Navigate to home page where the upload mutation functionality exists
+      setLocation("/");
+      // Trigger the processing via an event after navigation
+      setTimeout(() => {
+        const fileData = { file };
+        window.dispatchEvent(new CustomEvent('process-recipe-image', { 
+          detail: { filePath: URL.createObjectURL(file) }
+        }));
+      }, 300);
+    }
   };
   
   // Handler for the floating action button (plus)
@@ -129,6 +157,23 @@ const Favorites = () => {
       </main>
       
       <BottomNavigation activeItem="favorites" onAddNew={handleAddNewRecipe} />
+      
+      {/* Hidden file input for photo upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelected}
+        accept="image/*"
+        className="hidden"
+      />
+      
+      {/* Photo Options Modal */}
+      <PhotoOptionsModal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        onSelectOption={handlePhotoOptionSelected}
+        isLoading={isProcessingImage}
+      />
     </div>
   );
 };

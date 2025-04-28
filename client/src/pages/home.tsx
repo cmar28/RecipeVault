@@ -129,13 +129,52 @@ const Home = () => {
       setIsPhotoModalOpen(true);
     };
     
+    // Register the custom event handler for processing recipe image
+    const processRecipeImageHandler = (event: Event) => {
+      const customEvent = event as CustomEvent<{filePath: string}>;
+      // Show toast message that recipe is being processed
+      toast({
+        title: "Processing recipe",
+        description: "Your image is being analyzed...",
+        duration: 5000,
+      });
+      
+      // Trigger file selection based on the path
+      if (customEvent.detail && customEvent.detail.filePath) {
+        // We need to convert the URL back to a file
+        fetch(customEvent.detail.filePath)
+          .then(response => response.blob())
+          .then(blob => {
+            const file = new File([blob], "recipe-image.jpg", { type: "image/jpeg" });
+            
+            // Set loading state
+            setIsProcessingImage(true);
+            
+            // Upload and process the image
+            uploadMutation.mutate(file);
+          })
+          .catch(error => {
+            console.error("Error processing image:", error);
+            toast({
+              title: "Error processing image",
+              description: "There was a problem processing your image",
+              variant: "destructive",
+              duration: 5000,
+            });
+            setIsProcessingImage(false);
+          });
+      }
+    };
+    
     window.addEventListener('show-photo-modal', showPhotoModalHandler);
+    window.addEventListener('process-recipe-image', processRecipeImageHandler as EventListener);
     
     // Cleanup event listeners
     return () => {
       window.removeEventListener('show-photo-modal', showPhotoModalHandler);
+      window.removeEventListener('process-recipe-image', processRecipeImageHandler as EventListener);
     };
-  }, []);
+  }, [toast, uploadMutation]);
 
   return (
     <div className="font-sans bg-background text-foreground min-h-screen pb-20">
