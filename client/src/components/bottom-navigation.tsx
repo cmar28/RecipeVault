@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Home, Camera, Heart, Menu } from "lucide-react";
+import { Home, Plus, Heart, Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 
 type BottomNavigationProps = {
@@ -89,7 +89,7 @@ const BottomNavigation = ({ activeItem, onAddNew }: BottomNavigationProps) => {
           onClick={handleAddClick}
           aria-label="Add new recipe"
         >
-          <Camera className="h-8 w-8" />
+          <Plus className="h-8 w-8" />
         </button>
         
         {/* Placeholder to maintain layout */}
