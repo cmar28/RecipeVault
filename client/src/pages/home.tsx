@@ -77,7 +77,7 @@ const Home = () => {
   
   // Handler for the floating action button (plus)
   const handleManualAddRecipe = () => {
-    setLocation('/recipe/new');
+    setLocation('/create');
   };
 
   const handleSearch = (query: string) => {
