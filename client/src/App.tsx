@@ -23,7 +23,6 @@ function Router() {
       <ProtectedRoute path="/" component={Home} />
       <ProtectedRoute path="/recipes/:id" component={RecipeDetail} />
       <ProtectedRoute path="/create" component={() => <RecipeForm mode="create" />} />
-      <ProtectedRoute path="/recipe/new" component={() => <RecipeForm mode="create" />} />
       <ProtectedRoute path="/edit/:id" component={({params}) => {
         console.log("Edit route params:", params);
         const id = parseInt(params.id);

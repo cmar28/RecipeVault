@@ -71,8 +71,7 @@ const Home = () => {
   );
 
   const handleAddNewRecipe = () => {
-    // Navigate directly to the recipe form page instead of opening the photo modal
-    setLocation('/create');
+    setIsPhotoModalOpen(true);
   };
 
   const handleSearch = (query: string) => {
