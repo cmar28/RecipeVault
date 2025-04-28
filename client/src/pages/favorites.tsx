@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { ArrowLeft, ThumbsUp } from "lucide-react";
+import { ArrowLeft, ThumbsUp, Plus } from "lucide-react";
 import Header from "@/components/header";
 import BottomNavigation from "@/components/bottom-navigation";
 import RecipeList from "@/components/recipe-list";
@@ -86,6 +86,16 @@ const Favorites = () => {
               </button>
             </div>
           )}
+          
+          {/* Floating action button for manually adding new recipes */}
+          <button 
+            className="fab-button"
+            onClick={handleManualAddRecipe}
+            data-action="add-recipe-manual"
+            aria-label="Create new recipe manually"
+          >
+            <Plus className="h-6 w-6" />
+          </button>
           
           {/* Recipe list */}
           <div className="mb-4">

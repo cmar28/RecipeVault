@@ -117,12 +117,24 @@ const Home = () => {
     }
   };
 
-  // Clear search handler
+  // Setup event listeners
   useEffect(() => {
     // Register the clear search handler
     if (clearSearchRef.current) {
       clearSearchRef.current.addEventListener('click', () => handleSearch(''));
     }
+    
+    // Register the custom event handler for showing the photo modal
+    const showPhotoModalHandler = () => {
+      setIsPhotoModalOpen(true);
+    };
+    
+    window.addEventListener('show-photo-modal', showPhotoModalHandler);
+    
+    // Cleanup event listeners
+    return () => {
+      window.removeEventListener('show-photo-modal', showPhotoModalHandler);
+    };
   }, []);
 
   return (
