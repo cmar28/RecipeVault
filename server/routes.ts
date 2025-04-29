@@ -191,18 +191,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const recipeData = {
         title: extractionResult.recipe.title,
         description: extractionResult.recipe.description,
-        cookingTime: extractionResult.recipe.cookingTimeMinutes,
-        difficulty: extractionResult.recipe.difficulty.toLowerCase(),
-        ingredients: extractionResult.recipe.ingredients.join('\n'),
-        instructions: extractionResult.recipe.instructions.join('\n'),
+        cookTime: extractionResult.recipe.cookingTimeMinutes, // Match schema field name
         servings: extractionResult.recipe.servings,
+        // Pass arrays directly instead of joining as strings
+        ingredients: extractionResult.recipe.ingredients,
+        instructions: extractionResult.recipe.instructions,
         imageUrl: null, // No image is stored
         createdBy: userId
       };
       
-      // Create the recipe in the database
-      const validatedData = insertRecipeSchema.parse(recipeData);
-      const newRecipe = await storage.createRecipe(validatedData);
+      let newRecipe;
+      try {
+        // Log the data we're trying to validate
+        console.log('Recipe data before validation:', JSON.stringify(recipeData, null, 2));
+        
+        // Create the recipe in the database
+        const validatedData = insertRecipeSchema.parse(recipeData);
+        console.log('Validation successful');
+        newRecipe = await storage.createRecipe(validatedData);
+      } catch (validationErr) {
+        if (validationErr instanceof z.ZodError) {
+          console.error('Zod validation error:', JSON.stringify(validationErr.format(), null, 2));
+        }
+        throw validationErr;
+      }
       
       // Return the created recipe
       res.status(201).json({
