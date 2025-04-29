@@ -11,20 +11,36 @@ import logging
 GREEN = '\033[92m'
 RESET = '\033[0m'
 
-# Custom formatter with green color
-class ColoredFormatter(logging.Formatter):
-    def format(self, record):
-        message = super().format(record)
-        return f"{GREEN}[AI SERVICE] {message}{RESET}"
+# Customize the Flask logger and root logger to have green output
+for handler in logging.getLogger().handlers:
+    handler.setFormatter(logging.Formatter(f'{GREEN}[AI SERVICE] %(asctime)s - %(levelname)s - %(message)s{RESET}'))
 
-# Set up logging
+for handler in logging.getLogger('werkzeug').handlers:
+    handler.setFormatter(logging.Formatter(f'{GREEN}[AI SERVICE] %(message)s{RESET}'))
+
+# Set up custom logger for our app
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# Console handler with colored formatter
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(ColoredFormatter('%(asctime)s - %(levelname)s - %(message)s'))
-logger.addHandler(console_handler)
+# Remove any existing handlers to avoid duplicate logs
+for handler in logger.handlers:
+    logger.removeHandler(handler)
+
+# Custom log function that works with direct printing for more reliable colored output
+def log(message, level="INFO"):
+    # Print with color directly to stdout
+    color_message = f"{GREEN}[AI SERVICE] {level}: {message}{RESET}"
+    print(color_message, flush=True)
+    
+    # Also log through the standard logger
+    if level == "INFO":
+        logger.info(message)
+    elif level == "ERROR":
+        logger.error(message)
+    elif level == "WARNING":
+        logger.warning(message)
+    elif level == "DEBUG":
+        logger.debug(message)
 
 # Load environment variables
 load_dotenv()
@@ -42,7 +58,7 @@ def is_valid_base64_image(image_data):
         base64.b64decode(image_data)
         return True
     except Exception as e:
-        logger.error(f"Invalid base64 image: {e}")
+        log(f"Invalid base64 image: {e}", "ERROR")
         return False
 
 @app.route('/verify', methods=['POST'])
@@ -84,7 +100,7 @@ def verify_recipe_image():
         
         # Extract the response
         ai_response = response.choices[0].message.content.strip().lower()
-        logger.info(f"OpenAI verification response: {ai_response}")
+        log(f"OpenAI verification response: {ai_response}")
         
         # Determine if the image contains a recipe
         is_recipe = 'yes' in ai_response
@@ -96,7 +112,7 @@ def verify_recipe_image():
         })
         
     except Exception as e:
-        logger.error(f"Error verifying recipe: {e}")
+        log(f"Error verifying recipe: {e}", "ERROR")
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/extract', methods=['POST'])
@@ -160,7 +176,7 @@ def extract_recipe():
         
         # Extract the response
         ai_response = response.choices[0].message.content.strip()
-        logger.info(f"OpenAI extraction response received")
+        log(f"OpenAI extraction response received")
         
         # Parse the JSON response
         try:
@@ -193,27 +209,27 @@ def extract_recipe():
                 }), 400
                 
         except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error: {e}, Response: {ai_response}")
+            log(f"JSON decode error: {e}, Response: {ai_response}", "ERROR")
             return jsonify({
                 "success": False, 
                 "error": "Could not parse recipe data from image"
             }), 400
         
     except Exception as e:
-        logger.error(f"Error extracting recipe: {e}")
+        log(f"Error extracting recipe: {e}", "ERROR")
         return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5050))
     
-    # Print these directly to ensure they show up in the console
-    print(f"{GREEN}[AI SERVICE] 🚀 Starting AI Recipe Service on port {port}{RESET}")
-    print(f"{GREEN}[AI SERVICE] OpenAI API Key Status: {'Configured' if os.getenv('OPENAI_API_KEY') else 'Missing'}{RESET}")
-    print(f"{GREEN}[AI SERVICE] Ready to process recipe images{RESET}")
+    # Use our custom log function for service startup information
+    log(f"🚀 Starting AI Recipe Service on port {port}")
+    log(f"OpenAI API Key Status: {'Configured' if os.getenv('OPENAI_API_KEY') else 'Missing'}")
+    log(f"Ready to process recipe images")
     
-    # Also log with the logger
-    logger.info('🚀 Starting AI Recipe Service on port %s', port)
-    logger.info('OpenAI API Key Status: %s', 'Configured' if os.getenv("OPENAI_API_KEY") else 'Missing')
-    logger.info('Ready to process recipe images')
+    # Additional direct colored prints to ensure visibility
+    print(f"{GREEN}[AI SERVICE] 🚀 Starting AI Recipe Service on port {port}{RESET}", flush=True)
+    print(f"{GREEN}[AI SERVICE] OpenAI API Key Status: {'Configured' if os.getenv('OPENAI_API_KEY') else 'Missing'}{RESET}", flush=True)
+    print(f"{GREEN}[AI SERVICE] Ready to process recipe images{RESET}", flush=True)
     
     app.run(host='0.0.0.0', port=port, debug=True)
