@@ -162,7 +162,7 @@ def extract_recipe():
 
         # Extract the response
         ai_response = response.choices[0].message.content.strip()
-        logger.info(f"OpenAI extraction response received")
+        logger.info(f"OpenAI extraction response received:\n{ai_response}")
 
         # Parse the JSON response
         try:
