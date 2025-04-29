@@ -1,4 +1,5 @@
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
+import { auth } from "@/lib/firebase";
 
 /**
  * Uploads a recipe image and processes it with AI
@@ -23,34 +24,22 @@ export async function uploadRecipeImage(file: File): Promise<{recipe: any; messa
     const formData = new FormData();
     formData.append('image', file);
     
-    // Upload the image to the server - manually handle FormData using fetch API
-    const token = localStorage.getItem('token');
-    
-    try {
-      // First, check if AI service is running by making a quick request with timeout
-      const aiServiceCheck = await Promise.race([
-        fetch('/api/recipes/from-image', {
-          method: 'HEAD',
-          headers: {
-            'Authorization': token ? `Bearer ${token}` : ''
-          }
-        }),
-        new Promise<Response>((_, reject) => 
-          setTimeout(() => reject(new Error('AI service connection timeout')), 1000)
-        )
-      ]);
-    } catch (e) {
-      // AI service is not running or not responding
-      console.error("AI service connection issue:", e);
-      throw new Error('The AI recipe analysis service is not available. Please make sure to run the start_ai_service.sh script in a separate terminal.');
+    // Get current auth token from Firebase
+    let authHeader = {};
+    if (auth.currentUser) {
+      const token = await auth.currentUser.getIdToken();
+      console.log("Firebase token obtained successfully");
+      authHeader = { 'Authorization': `Bearer ${token}` };
+    } else {
+      console.warn("No authenticated user found for image upload");
     }
     
-    // If we reach here, the AI service appears to be responding
+    // Send the request to process the image
     const response = await fetch('/api/recipes/from-image', {
       method: 'POST',
       body: formData,
       headers: {
-        'Authorization': token ? `Bearer ${token}` : ''
+        ...authHeader
       }
     });
     

@@ -72,6 +72,15 @@ const firebaseAuthMiddleware = async (req: Request, res: Response, next: NextFun
     // Extract the Firebase ID token from the Authorization header
     const authHeader = req.headers.authorization;
     
+    // Detailed debugging for recipe image upload requests
+    if (req.path === '/api/recipes/from-image' && req.method === 'POST') {
+      console.log('Recipe image upload auth middleware processing');
+      console.log('Auth header exists:', !!authHeader);
+      if (authHeader) {
+        console.log('Auth header starts with Bearer:', authHeader.startsWith('Bearer '));
+      }
+    }
+    
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const idToken = authHeader.split(' ')[1];
       
@@ -88,16 +97,31 @@ const firebaseAuthMiddleware = async (req: Request, res: Response, next: NextFun
           // For debugging
           if (process.env.NODE_ENV === 'development') {
             console.log(`Authenticated request from user: ${userId}`);
+            
+            // More detailed debug for image upload
+            if (req.path === '/api/recipes/from-image' && req.method === 'POST') {
+              console.log('Successfully authenticated image upload request');
+            }
           }
         } else {
           console.warn('Invalid Firebase token provided');
+          // More detailed debug for image upload
+          if (req.path === '/api/recipes/from-image' && req.method === 'POST') {
+            console.log('Invalid token for image upload request');
+          }
           // Don't set the user ID if token is invalid
           // This will cause protected routes to return 401
         }
       } catch (tokenError) {
         console.error('Error verifying token:', tokenError);
+        // More detailed debug for image upload
+        if (req.path === '/api/recipes/from-image' && req.method === 'POST') {
+          console.log('Token verification error for image upload');
+        }
         // Don't set user ID on verification error
       }
+    } else if (req.path === '/api/recipes/from-image' && req.method === 'POST') {
+      console.log('No Bearer token found for image upload request');
     }
     
     next();
@@ -115,11 +139,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Upload and process recipe image
   app.post("/api/recipes/from-image", upload.single('image'), async (req: Request, res: Response) => {
     try {
+      // Log headers for debugging
+      console.log("Received recipe image upload request");
+      console.log("Auth header:", req.headers.authorization ? "Present" : "Missing");
+      
       // Get user ID from Firebase Auth
       const userId = req.headers['x-firebase-uid'] as string;
+      console.log("User ID from middleware:", userId || "Not found");
       
       // Require authentication
       if (!userId) {
+        console.log("Authentication failed for recipe image upload");
         return res.status(401).json({ message: "Authentication required to create recipes" });
       }
       
