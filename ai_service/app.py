@@ -6,36 +6,9 @@ import json
 from openai import OpenAI
 import logging
 
-# Configure logging for better visibility
-# Text decorations that will make logs stand out
-PREFIX = "🔍 [AI SERVICE]"
-
-# Configure basic logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-
-# Get the root logger
-logger = logging.getLogger()
-
-# Custom log function with distinctive prefix
-def log(message, level="INFO"):
-    # Create a message with a distinctive prefix that will stand out in the logs
-    formatted_message = f"{PREFIX} {message}"
-    
-    # Log using standard Python logging
-    if level == "INFO":
-        logger.info(formatted_message)
-    elif level == "ERROR":
-        logger.error(formatted_message)
-    elif level == "WARNING":
-        logger.warning(formatted_message)
-    elif level == "DEBUG":
-        logger.debug(formatted_message)
-    
-    # Also print directly to ensure visibility
-    print(formatted_message, flush=True)
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -53,7 +26,7 @@ def is_valid_base64_image(image_data):
         base64.b64decode(image_data)
         return True
     except Exception as e:
-        log(f"Invalid base64 image: {e}", "ERROR")
+        logger.error(f"Invalid base64 image: {e}")
         return False
 
 @app.route('/verify', methods=['POST'])
@@ -95,7 +68,7 @@ def verify_recipe_image():
         
         # Extract the response
         ai_response = response.choices[0].message.content.strip().lower()
-        log(f"OpenAI verification response: {ai_response}")
+        logger.info(f"OpenAI verification response: {ai_response}")
         
         # Determine if the image contains a recipe
         is_recipe = 'yes' in ai_response
@@ -107,7 +80,7 @@ def verify_recipe_image():
         })
         
     except Exception as e:
-        log(f"Error verifying recipe: {e}", "ERROR")
+        logger.error(f"Error verifying recipe: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/extract', methods=['POST'])
@@ -171,7 +144,7 @@ def extract_recipe():
         
         # Extract the response
         ai_response = response.choices[0].message.content.strip()
-        log(f"OpenAI extraction response received")
+        logger.info(f"OpenAI extraction response received")
         
         # Parse the JSON response
         try:
@@ -204,27 +177,16 @@ def extract_recipe():
                 }), 400
                 
         except json.JSONDecodeError as e:
-            log(f"JSON decode error: {e}, Response: {ai_response}", "ERROR")
+            logger.error(f"JSON decode error: {e}, Response: {ai_response}")
             return jsonify({
                 "success": False, 
                 "error": "Could not parse recipe data from image"
             }), 400
         
     except Exception as e:
-        log(f"Error extracting recipe: {e}", "ERROR")
+        logger.error(f"Error extracting recipe: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5050))
-    
-    # Use our custom log function for service startup information
-    log(f"🚀 Starting AI Recipe Service on port {port}")
-    log(f"OpenAI API Key Status: {'Configured' if os.getenv('OPENAI_API_KEY') else 'Missing'}")
-    log(f"Ready to process recipe images")
-    
-    # Additional direct colored prints to ensure visibility
-    print(f"{GREEN}[AI SERVICE] 🚀 Starting AI Recipe Service on port {port}{RESET}", flush=True)
-    print(f"{GREEN}[AI SERVICE] OpenAI API Key Status: {'Configured' if os.getenv('OPENAI_API_KEY') else 'Missing'}{RESET}", flush=True)
-    print(f"{GREEN}[AI SERVICE] Ready to process recipe images{RESET}", flush=True)
-    
     app.run(host='0.0.0.0', port=port, debug=True)

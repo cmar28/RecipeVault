@@ -1,15 +1,15 @@
-import { spawn } from 'child_process';
-import { log } from './vite.js';
+import { spawn, type ChildProcess } from 'child_process';
+import { log } from './vite';
 
 /**
  * Starts the AI service in the background
  * @returns A cleanup function to stop the service
  */
-export function startAIService() {
+export function startAIService(): () => void {
   log('Starting AI service...', 'services');
   
   // Start the AI service process
-  const aiProcess = spawn('python', ['run.py'], {
+  const aiProcess: ChildProcess = spawn('python', ['run.py'], {
     cwd: './ai_service',
     stdio: 'pipe',
     detached: false
