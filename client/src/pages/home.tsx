@@ -48,7 +48,7 @@ const Home = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/recipes'] });
       
       // Navigate to the newly created recipe
-      setLocation(`/recipe/${data.recipe.id}`);
+      setLocation(`/recipes/${data.recipe.id}`);
     },
     onError: (error: Error) => {
       // Show error toast
