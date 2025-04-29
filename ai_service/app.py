@@ -59,7 +59,7 @@ def verify_recipe_image():
 
         # Call OpenAI API
         response = client.chat.completions.create(
-            model="gpt-4-vision-preview",
+            model="gpt-4.1-nano",
             messages=[{
                 "role":
                 "user",
@@ -144,7 +144,7 @@ def extract_recipe():
 
         # Call OpenAI API
         response = client.chat.completions.create(
-            model="gpt-4-vision-preview",
+            model="gpt-4.1-nano",
             messages=[{
                 "role":
                 "user",

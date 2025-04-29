@@ -24,7 +24,15 @@ export function startAIService(): () => void {
   
   if (aiProcess.stderr) {
     aiProcess.stderr.on('data', (data) => {
-      log(`AI service error: ${data}`, 'services');
+      const message = data.toString();
+      
+      // Check for actual error messages
+      if (message.includes('ERROR') || message.includes('Exception') || message.includes('Error:')) {
+        log(`AI service error: ${message}`, 'services');
+      } else {
+        // Regular logs from stderr (common in Python)
+        log(`AI service: ${message}`, 'services');
+      }
     });
   }
   
