@@ -25,27 +25,6 @@ export async function uploadRecipeImage(file: File): Promise<{recipe: any; messa
     
     // Upload the image to the server - manually handle FormData using fetch API
     const token = localStorage.getItem('token');
-    
-    try {
-      // First, check if AI service is running by making a quick request with timeout
-      const aiServiceCheck = await Promise.race([
-        fetch('/api/recipes/from-image', {
-          method: 'HEAD',
-          headers: {
-            'Authorization': token ? `Bearer ${token}` : ''
-          }
-        }),
-        new Promise<Response>((_, reject) => 
-          setTimeout(() => reject(new Error('AI service connection timeout')), 1000)
-        )
-      ]);
-    } catch (e) {
-      // AI service is not running or not responding
-      console.error("AI service connection issue:", e);
-      throw new Error('The AI recipe analysis service is not available. Please make sure to run the start_ai_service.sh script in a separate terminal.');
-    }
-    
-    // If we reach here, the AI service appears to be responding
     const response = await fetch('/api/recipes/from-image', {
       method: 'POST',
       body: formData,
