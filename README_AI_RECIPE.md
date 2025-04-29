@@ -19,16 +19,14 @@ This feature allows users to upload photos of recipes and have them automaticall
 
 ### Running the Service
 
-The AI service needs to be running alongside the main application to process recipe images. To start the AI service:
+The AI service is now automatically started when the main application runs. You don't need to start it separately.
 
-1. Open a new terminal
-2. Run the command: `./start_ai_service.sh`
-3. Keep this terminal running while using the application
+> **Note**: If needed, you can still manually start the AI service with `./start_ai_service.sh`, but this is no longer required.
 
 ### Error Handling
 
 - If an image does not contain a recipe, the user will be notified
-- If the AI service is not running, the user will be informed to start it
+- If there's an issue with the AI service, the application will display an appropriate error message
 - The original image is not stored, only the extracted recipe data
 
 ## Technical Implementation

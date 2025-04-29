@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { startAIService } from "./startupServices";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +38,17 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Start the AI service before initializing the routes
+  log("Starting AI service before initializing server...");
+  const stopAIService = startAIService();
+  
+  // Add a cleanup handler to stop the AI service when the server shuts down
+  process.on('SIGINT', () => {
+    log("Shutting down AI service...");
+    stopAIService();
+    process.exit(0);
+  });
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
