@@ -6,9 +6,25 @@ import json
 from openai import OpenAI
 import logging
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# Configure logging with bright green color for better visibility
+# ANSI color codes for bright green
+GREEN = '\033[92m'
+RESET = '\033[0m'
+
+# Custom formatter with green color
+class ColoredFormatter(logging.Formatter):
+    def format(self, record):
+        message = super().format(record)
+        return f"{GREEN}[AI SERVICE] {message}{RESET}"
+
+# Set up logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Console handler with colored formatter
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(ColoredFormatter('%(asctime)s - %(levelname)s - %(message)s'))
+logger.addHandler(console_handler)
 
 # Load environment variables
 load_dotenv()
@@ -189,4 +205,15 @@ def extract_recipe():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5050))
+    
+    # Print these directly to ensure they show up in the console
+    print(f"{GREEN}[AI SERVICE] 🚀 Starting AI Recipe Service on port {port}{RESET}")
+    print(f"{GREEN}[AI SERVICE] OpenAI API Key Status: {'Configured' if os.getenv('OPENAI_API_KEY') else 'Missing'}{RESET}")
+    print(f"{GREEN}[AI SERVICE] Ready to process recipe images{RESET}")
+    
+    # Also log with the logger
+    logger.info('🚀 Starting AI Recipe Service on port %s', port)
+    logger.info('OpenAI API Key Status: %s', 'Configured' if os.getenv("OPENAI_API_KEY") else 'Missing')
+    logger.info('Ready to process recipe images')
+    
     app.run(host='0.0.0.0', port=port, debug=True)
