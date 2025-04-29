@@ -6,41 +6,36 @@ import json
 from openai import OpenAI
 import logging
 
-# Configure logging with bright green color for better visibility
-# ANSI color codes for bright green
-GREEN = '\033[92m'
-RESET = '\033[0m'
+# Configure logging for better visibility
+# Text decorations that will make logs stand out
+PREFIX = "🔍 [AI SERVICE]"
 
-# Customize the Flask logger and root logger to have green output
-for handler in logging.getLogger().handlers:
-    handler.setFormatter(logging.Formatter(f'{GREEN}[AI SERVICE] %(asctime)s - %(levelname)s - %(message)s{RESET}'))
+# Configure basic logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
-for handler in logging.getLogger('werkzeug').handlers:
-    handler.setFormatter(logging.Formatter(f'{GREEN}[AI SERVICE] %(message)s{RESET}'))
+# Get the root logger
+logger = logging.getLogger()
 
-# Set up custom logger for our app
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-# Remove any existing handlers to avoid duplicate logs
-for handler in logger.handlers:
-    logger.removeHandler(handler)
-
-# Custom log function that works with direct printing for more reliable colored output
+# Custom log function with distinctive prefix
 def log(message, level="INFO"):
-    # Print with color directly to stdout
-    color_message = f"{GREEN}[AI SERVICE] {level}: {message}{RESET}"
-    print(color_message, flush=True)
+    # Create a message with a distinctive prefix that will stand out in the logs
+    formatted_message = f"{PREFIX} {message}"
     
-    # Also log through the standard logger
+    # Log using standard Python logging
     if level == "INFO":
-        logger.info(message)
+        logger.info(formatted_message)
     elif level == "ERROR":
-        logger.error(message)
+        logger.error(formatted_message)
     elif level == "WARNING":
-        logger.warning(message)
+        logger.warning(formatted_message)
     elif level == "DEBUG":
-        logger.debug(message)
+        logger.debug(formatted_message)
+    
+    # Also print directly to ensure visibility
+    print(formatted_message, flush=True)
 
 # Load environment variables
 load_dotenv()
