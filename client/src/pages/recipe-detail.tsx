@@ -202,10 +202,10 @@ const RecipeDetail = () => {
                   
                   // Show toast notification
                   toast({
-                    title: updatedRecipe.isFavorite ? "Removed from favorites" : "Added to favorites",
+                    title: updatedRecipe.isFavorite ? "Added to favorites" : "Removed from favorites",
                     description: updatedRecipe.isFavorite 
-                      ? `${recipe.title} has been removed from your favorites.`
-                      : `${recipe.title} has been added to your favorites.`,
+                      ? `${recipe.title} has been added to your favorites.`
+                      : `${recipe.title} has been removed from your favorites.`,
                     duration: 2000
                   });
                 })
