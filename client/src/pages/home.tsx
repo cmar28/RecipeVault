@@ -7,8 +7,9 @@ import BottomNavigation from "@/components/bottom-navigation";
 import RecipeList from "@/components/recipe-list";
 import RecipeCard from "@/components/recipe-card";
 import PhotoOptionsModal from "@/components/photo-options-modal";
+import RecipeProcessingModal, { ProcessingStage } from "@/components/recipe-processing-modal";
 import { Recipe } from "@shared/schema";
-import { uploadRecipeImage } from "@/utils/recipe-image-service";
+import { uploadRecipeImage, RECIPE_PROCESSING_STAGE_EVENT } from "@/utils/recipe-image-service";
 import { useToast } from "@/hooks/use-toast";
 
 const Home = () => {
@@ -16,6 +17,13 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [processingStages, setProcessingStages] = useState<ProcessingStage[]>([
+    { id: 'uploading', label: 'Uploading image', status: 'pending' },
+    { id: 'verifying', label: 'Verifying recipe image', status: 'pending' },
+    { id: 'extracting', label: 'Extracting recipe details', status: 'pending' },
+    { id: 'saving', label: 'Saving recipe', status: 'pending' }
+  ]);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const clearSearchRef = useRef<HTMLButtonElement>(null);
   const { toast } = useToast();
@@ -47,8 +55,19 @@ const Home = () => {
       // Invalidate recipes query to refresh the list
       queryClient.invalidateQueries({ queryKey: ['/api/recipes'] });
       
-      // Navigate to the newly created recipe
-      setLocation(`/recipes/${data.recipe.id}`);
+      // Navigate to the newly created recipe after a short delay so user can see the completed stages
+      setTimeout(() => {
+        setIsProcessingImage(false);
+        setLocation(`/recipes/${data.recipe.id}`);
+        
+        // Reset processing stages for next time
+        setProcessingStages([
+          { id: 'uploading', label: 'Uploading image', status: 'pending' },
+          { id: 'verifying', label: 'Verifying recipe image', status: 'pending' },
+          { id: 'extracting', label: 'Extracting recipe details', status: 'pending' },
+          { id: 'saving', label: 'Saving recipe', status: 'pending' }
+        ]);
+      }, 1500);
     },
     onError: (error: Error) => {
       // Show error toast
@@ -58,10 +77,19 @@ const Home = () => {
         variant: "destructive",
         duration: 5000,
       });
-    },
-    onSettled: () => {
-      // Reset loading state
-      setIsProcessingImage(false);
+      
+      // Keep the modal open for a bit longer so user can see the error
+      setTimeout(() => {
+        setIsProcessingImage(false);
+        
+        // Reset processing stages for next time
+        setProcessingStages([
+          { id: 'uploading', label: 'Uploading image', status: 'pending' },
+          { id: 'verifying', label: 'Verifying recipe image', status: 'pending' },
+          { id: 'extracting', label: 'Extracting recipe details', status: 'pending' },
+          { id: 'saving', label: 'Saving recipe', status: 'pending' }
+        ]);
+      }, 3000);
     }
   });
   
@@ -97,13 +125,6 @@ const Home = () => {
   const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Show loading toast
-      toast({
-        title: "Processing recipe",
-        description: "Your image is being analyzed...",
-        duration: 5000,
-      });
-      
       // Set loading state
       setIsProcessingImage(true);
       
@@ -132,12 +153,6 @@ const Home = () => {
     // Register the custom event handler for processing recipe image
     const processRecipeImageHandler = (event: Event) => {
       const customEvent = event as CustomEvent<{filePath: string}>;
-      // Show toast message that recipe is being processed
-      toast({
-        title: "Processing recipe",
-        description: "Your image is being analyzed...",
-        duration: 5000,
-      });
       
       // Trigger file selection based on the path
       if (customEvent.detail && customEvent.detail.filePath) {
@@ -166,13 +181,31 @@ const Home = () => {
       }
     };
     
+    // Register the stage update event handler
+    const processingStageUpdateHandler = (event: Event) => {
+      const customEvent = event as CustomEvent<ProcessingStage>;
+      const updatedStage = customEvent.detail;
+      
+      // Update the processing stages
+      setProcessingStages(prevStages => {
+        return prevStages.map(stage => {
+          if (stage.id === updatedStage.id) {
+            return { ...stage, ...updatedStage };
+          }
+          return stage;
+        });
+      });
+    };
+    
     window.addEventListener('show-photo-modal', showPhotoModalHandler);
     window.addEventListener('process-recipe-image', processRecipeImageHandler as EventListener);
+    window.addEventListener(RECIPE_PROCESSING_STAGE_EVENT, processingStageUpdateHandler as EventListener);
     
     // Cleanup event listeners
     return () => {
       window.removeEventListener('show-photo-modal', showPhotoModalHandler);
       window.removeEventListener('process-recipe-image', processRecipeImageHandler as EventListener);
+      window.removeEventListener(RECIPE_PROCESSING_STAGE_EVENT, processingStageUpdateHandler as EventListener);
     };
   }, [toast, uploadMutation]);
 
@@ -278,10 +311,18 @@ const Home = () => {
       
       {/* Photo Options Modal */}
       <PhotoOptionsModal
-        isOpen={isPhotoModalOpen}
+        isOpen={isPhotoModalOpen && !isProcessingImage}
         onClose={() => setIsPhotoModalOpen(false)}
         onSelectOption={handlePhotoOptionSelected}
-        isLoading={isProcessingImage}
+        isLoading={false}
+      />
+      
+      {/* Recipe Processing Modal */}
+      <RecipeProcessingModal
+        isOpen={isProcessingImage}
+        onClose={() => {}} // Disable closing during processing
+        stages={processingStages}
+        title="Processing Your Recipe"
       />
     </div>
   );
