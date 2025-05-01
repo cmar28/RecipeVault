@@ -23,6 +23,51 @@ const upload = multer({
 // Python AI service configuration
 const AI_SERVICE_URL = 'http://localhost:5050';
 
+// WebSocket client connections storage
+const clients = new Map<string, WebSocket>();
+
+// Helper function to send processing status updates via WebSocket
+function sendProcessingStatus(
+  clientId: string, 
+  stage: 'uploading' | 'verifying' | 'extracting' | 'saving',
+  status: 'pending' | 'processing' | 'success' | 'error',
+  message?: string
+): boolean {
+  const client = clients.get(clientId);
+  
+  // Check if client exists and connection is open
+  if (client && client.readyState === WebSocket.OPEN) {
+    try {
+      client.send(JSON.stringify({
+        type: 'processing_update',
+        stage: {
+          id: stage,
+          label: getStageLabel(stage),
+          status,
+          message
+        }
+      }));
+      return true;
+    } catch (error) {
+      console.error(`Failed to send WebSocket update to client ${clientId}:`, error);
+      return false;
+    }
+  }
+  console.log(`Unable to send WebSocket update to client ${clientId} (not connected or connection closed)`);
+  return false;
+}
+
+// Get a human-readable label for a processing stage
+function getStageLabel(stage: string): string {
+  switch (stage) {
+    case 'uploading': return 'Uploading image';
+    case 'verifying': return 'Verifying recipe image';
+    case 'extracting': return 'Extracting recipe details';
+    case 'saving': return 'Saving recipe';
+    default: return 'Processing';
+  }
+}
+
 // Helper function to verify recipe image with Python AI service
 async function verifyRecipeImage(base64Image: string): Promise<{ success: boolean; message: string; is_recipe?: boolean }> {
   try {
@@ -144,6 +189,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Received recipe image upload request");
       console.log("Auth header:", req.headers.authorization ? "Present" : "Missing");
       
+      // Check for client ID for WebSocket updates
+      const clientId = req.headers['x-client-id'] as string;
+      console.log("Client ID for WebSocket updates:", clientId || "Not provided");
+      
+      // Track if real-time updates were delivered
+      let realTimeUpdatesDelivered = false;
+      
       // Get user ID from Firebase Auth
       const userId = req.headers['x-firebase-uid'] as string;
       console.log("User ID from middleware:", userId || "Not found");
@@ -162,20 +214,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Convert the file buffer to base64
       const base64Image = req.file.buffer.toString('base64');
       
+      // Send uploading complete and verification starting update via WebSocket
+      if (clientId) {
+        // Update for upload complete
+        const uploadComplete = sendProcessingStatus(clientId, 'uploading', 'success');
+        // Update for verification starting
+        const verifyStarting = sendProcessingStatus(
+          clientId, 
+          'verifying', 
+          'processing', 
+          'Checking if the image contains a recipe...'
+        );
+        
+        // If both messages were sent successfully, mark real-time updates as delivered
+        realTimeUpdatesDelivered = uploadComplete && verifyStarting;
+      }
+      
       // Verify it's a recipe image
       log("Verifying if image contains a recipe");
       const verificationResult = await verifyRecipeImage(base64Image);
       
       if (!verificationResult.success) {
+        // Send error update via WebSocket
+        if (clientId) {
+          sendProcessingStatus(
+            clientId, 
+            'verifying', 
+            'error', 
+            verificationResult.message || "Failed to verify recipe image"
+          );
+        }
+        
         return res.status(500).json({ 
-          message: verificationResult.message || "Failed to verify recipe image" 
+          message: verificationResult.message || "Failed to verify recipe image",
+          realTimeUpdatesDelivered 
         });
       }
       
       if (!verificationResult.is_recipe) {
+        // Send error update via WebSocket
+        if (clientId) {
+          sendProcessingStatus(
+            clientId, 
+            'verifying', 
+            'error', 
+            "The uploaded image does not appear to contain a recipe"
+          );
+        }
+        
         return res.status(400).json({ 
-          message: "The uploaded image does not appear to contain a recipe. Please try a different image." 
+          message: "The uploaded image does not appear to contain a recipe. Please try a different image.",
+          realTimeUpdatesDelivered 
         });
+      }
+      
+      // Send verification complete and extraction starting update via WebSocket
+      if (clientId) {
+        // Update for verification complete
+        sendProcessingStatus(clientId, 'verifying', 'success');
+        // Update for extraction starting
+        sendProcessingStatus(
+          clientId, 
+          'extracting', 
+          'processing', 
+          'Analyzing recipe ingredients and instructions...'
+        );
       }
       
       // Extract recipe data from image
@@ -183,9 +286,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const extractionResult = await extractRecipeFromImage(base64Image);
       
       if (!extractionResult.success || !extractionResult.recipe) {
+        // Send error update via WebSocket
+        if (clientId) {
+          sendProcessingStatus(
+            clientId, 
+            'extracting', 
+            'error', 
+            extractionResult.message || "Failed to extract recipe data from image"
+          );
+        }
+        
         return res.status(500).json({ 
-          message: extractionResult.message || "Failed to extract recipe data from image" 
+          message: extractionResult.message || "Failed to extract recipe data from image",
+          realTimeUpdatesDelivered 
         });
+      }
+      
+      // Send extraction complete and saving starting update via WebSocket
+      if (clientId) {
+        // Update for extraction complete
+        sendProcessingStatus(clientId, 'extracting', 'success');
+        // Update for saving starting
+        sendProcessingStatus(
+          clientId, 
+          'saving', 
+          'processing', 
+          'Saving recipe to your collection...'
+        );
       }
       
       // Convert the extracted recipe to our schema format
@@ -210,7 +337,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const validatedData = insertRecipeSchema.parse(recipeData);
         console.log('Validation successful');
         newRecipe = await storage.createRecipe(validatedData);
+        
+        // Send saving complete update via WebSocket
+        if (clientId) {
+          sendProcessingStatus(clientId, 'saving', 'success');
+        }
       } catch (validationErr) {
+        // Send error update via WebSocket
+        if (clientId) {
+          sendProcessingStatus(
+            clientId, 
+            'saving', 
+            'error', 
+            'Failed to save the recipe due to validation errors'
+          );
+        }
+        
         if (validationErr instanceof z.ZodError) {
           console.error('Zod validation error:', JSON.stringify(validationErr.format(), null, 2));
         }
@@ -220,16 +362,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Return the created recipe
       res.status(201).json({
         recipe: newRecipe,
-        message: "Recipe successfully created from image"
+        message: "Recipe successfully created from image",
+        realTimeUpdatesDelivered
       });
       
     } catch (error) {
       if (error instanceof z.ZodError) {
         const validationError = fromZodError(error);
-        return res.status(400).json({ message: validationError.message });
+        return res.status(400).json({ 
+          message: validationError.message,
+          realTimeUpdatesDelivered: false  
+        });
       }
       console.error("Error creating recipe from image:", error);
-      res.status(500).json({ message: "Failed to create recipe from image" });
+      res.status(500).json({ 
+        message: "Failed to create recipe from image",
+        realTimeUpdatesDelivered: false
+      });
     }
   });
   // Firebase User API endpoints
@@ -482,6 +631,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create the HTTP server
   const httpServer = createServer(app);
+  
+  // Set up WebSocket server on the same HTTP server but with a different path
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws' 
+  });
+  
+  // Handle WebSocket connections
+  wss.on('connection', (ws: WebSocket, req) => {
+    console.log('New WebSocket connection established');
+    
+    // Handle client registration
+    ws.on('message', (message: string) => {
+      try {
+        const data = JSON.parse(message);
+        
+        // Handle client registration
+        if (data.type === 'register' && data.clientId) {
+          const clientId = data.clientId;
+          console.log(`Registering WebSocket client: ${clientId}`);
+          
+          // Add client to our map
+          clients.set(clientId, ws);
+          
+          // Send confirmation to client
+          ws.send(JSON.stringify({
+            type: 'register_confirm',
+            clientId
+          }));
+          
+          // When the connection closes, remove the client
+          ws.on('close', () => {
+            console.log(`WebSocket client disconnected: ${clientId}`);
+            clients.delete(clientId);
+          });
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    });
+  });
+  
   return httpServer;
 }
