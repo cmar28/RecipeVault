@@ -396,8 +396,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let newRecipe;
       try {
-        // Log the data we're trying to validate
-        console.log('Recipe data before validation:', JSON.stringify(recipeData, null, 2));
+        // Log the data we're trying to validate (excluding the large imageData field)
+        const logSafeData = { ...recipeData };
+        if (logSafeData.imageData) {
+          logSafeData.imageData = '[BASE64_IMAGE_DATA]'; // Replace actual image data with placeholder
+        }
+        console.log('Recipe data before validation:', JSON.stringify(logSafeData, null, 2));
         
         // Create the recipe in the database
         const validatedData = insertRecipeSchema.parse(recipeData);
