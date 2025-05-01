@@ -101,15 +101,18 @@ export function connectToWebSocket(): Promise<string> {
       newSocket.addEventListener('message', (event) => {
         try {
           const data = JSON.parse(event.data);
+          console.log('WebSocket message received:', data);
           
-          if (data.type === 'processing_update') {
-            // Create a ProcessingStage object
-            const stage: ProcessingStage = {
+          if (data.type === 'processing_update' && data.stage) {
+            // Sometimes the server sends the stage object directly, other times as separate properties
+            const stage: ProcessingStage = data.stage.id ? data.stage : {
               id: data.stage as 'uploading' | 'verifying' | 'extracting' | 'saving',
               label: getStageLabel(data.stage),
               status: data.status as 'pending' | 'processing' | 'success' | 'error',
               message: data.message
             };
+            
+            console.log('Dispatching processing stage update:', stage);
             
             // Dispatch the stage update event
             window.dispatchEvent(
@@ -117,7 +120,7 @@ export function connectToWebSocket(): Promise<string> {
             );
           }
         } catch (error) {
-          // Ignore parsing errors for non-JSON messages
+          console.error('Error processing WebSocket message:', error, event.data);
         }
       });
       

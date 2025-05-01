@@ -33,28 +33,45 @@ function sendProcessingStatus(
   status: 'pending' | 'processing' | 'success' | 'error',
   message?: string
 ): boolean {
+  console.log(`Attempting to send ${stage} status (${status}) to client ${clientId}`);
+  
   const client = clients.get(clientId);
   
-  // Check if client exists and connection is open
-  if (client && client.readyState === WebSocket.OPEN) {
-    try {
-      client.send(JSON.stringify({
-        type: 'processing_update',
-        stage: {
-          id: stage,
-          label: getStageLabel(stage),
-          status,
-          message
-        }
-      }));
-      return true;
-    } catch (error) {
-      console.error(`Failed to send WebSocket update to client ${clientId}:`, error);
-      return false;
-    }
+  // Check if client exists
+  if (!client) {
+    console.log(`WebSocket client ${clientId} not found in clients map`);
+    return false;
   }
-  console.log(`Unable to send WebSocket update to client ${clientId} (not connected or connection closed)`);
-  return false;
+  
+  // Check if connection is open
+  if (client.readyState !== WebSocket.OPEN) {
+    console.log(`WebSocket client ${clientId} connection not open (state: ${client.readyState})`);
+    return false;
+  }
+  
+  try {
+    // Create the update message
+    const updateMessage = {
+      type: 'processing_update',
+      stage: {
+        id: stage,
+        label: getStageLabel(stage),
+        status,
+        message
+      }
+    };
+    
+    // Log what we're sending
+    console.log(`Sending to client ${clientId}:`, JSON.stringify(updateMessage));
+    
+    // Send the message
+    client.send(JSON.stringify(updateMessage));
+    console.log(`Successfully sent ${stage} ${status} status to client ${clientId}`);
+    return true;
+  } catch (error) {
+    console.error(`Failed to send WebSocket update to client ${clientId}:`, error);
+    return false;
+  }
 }
 
 // Get a human-readable label for a processing stage
@@ -232,17 +249,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify it's a recipe image
       log("Verifying if image contains a recipe");
+      
+      if (clientId) {
+        console.log(`Sending verification processing status to client ${clientId}`);
+      }
+      
       const verificationResult = await verifyRecipeImage(base64Image);
       
       if (!verificationResult.success) {
         // Send error update via WebSocket
         if (clientId) {
-          sendProcessingStatus(
+          const sent = sendProcessingStatus(
             clientId, 
             'verifying', 
             'error', 
             verificationResult.message || "Failed to verify recipe image"
           );
+          console.log(`Verification error status sent: ${sent}`);
         }
         
         return res.status(500).json({ 
@@ -254,12 +277,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!verificationResult.is_recipe) {
         // Send error update via WebSocket
         if (clientId) {
-          sendProcessingStatus(
+          const sent = sendProcessingStatus(
             clientId, 
             'verifying', 
             'error', 
             "The uploaded image does not appear to contain a recipe"
           );
+          console.log(`Not a recipe error status sent: ${sent}`);
         }
         
         return res.status(400).json({ 
@@ -271,14 +295,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send verification complete and extraction starting update via WebSocket
       if (clientId) {
         // Update for verification complete
-        sendProcessingStatus(clientId, 'verifying', 'success');
+        const verifySent = sendProcessingStatus(clientId, 'verifying', 'success');
+        console.log(`Verification success status sent: ${verifySent}`);
+        
         // Update for extraction starting
-        sendProcessingStatus(
+        const extractingSent = sendProcessingStatus(
           clientId, 
           'extracting', 
           'processing', 
           'Analyzing recipe ingredients and instructions...'
         );
+        console.log(`Extraction processing status sent: ${extractingSent}`);
       }
       
       // Extract recipe data from image
@@ -288,12 +315,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!extractionResult.success || !extractionResult.recipe) {
         // Send error update via WebSocket
         if (clientId) {
-          sendProcessingStatus(
+          const sent = sendProcessingStatus(
             clientId, 
             'extracting', 
             'error', 
             extractionResult.message || "Failed to extract recipe data from image"
           );
+          console.log(`Extraction error status sent: ${sent}`);
         }
         
         return res.status(500).json({ 
@@ -305,14 +333,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send extraction complete and saving starting update via WebSocket
       if (clientId) {
         // Update for extraction complete
-        sendProcessingStatus(clientId, 'extracting', 'success');
+        const extractSuccessSent = sendProcessingStatus(clientId, 'extracting', 'success');
+        console.log(`Extraction success status sent: ${extractSuccessSent}`);
+        
         // Update for saving starting
-        sendProcessingStatus(
+        const savingProcessingSent = sendProcessingStatus(
           clientId, 
           'saving', 
           'processing', 
           'Saving recipe to your collection...'
         );
+        console.log(`Saving processing status sent: ${savingProcessingSent}`);
       }
       
       // Convert the extracted recipe to our schema format
@@ -340,17 +371,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Send saving complete update via WebSocket
         if (clientId) {
-          sendProcessingStatus(clientId, 'saving', 'success');
+          const savingSuccessSent = sendProcessingStatus(clientId, 'saving', 'success');
+          console.log(`Saving success status sent: ${savingSuccessSent}`);
         }
       } catch (validationErr) {
         // Send error update via WebSocket
         if (clientId) {
-          sendProcessingStatus(
+          const savingErrorSent = sendProcessingStatus(
             clientId, 
             'saving', 
             'error', 
             'Failed to save the recipe due to validation errors'
           );
+          console.log(`Saving error status sent: ${savingErrorSent}`);
         }
         
         if (validationErr instanceof z.ZodError) {
