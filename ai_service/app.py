@@ -291,17 +291,15 @@ def crop_recipe_image():
         # Call OpenAI API for bounding box detection
         try:
             logger.info("Calling OpenAI to detect bounding box")
-            response = client.responses.create(
+            
+            # Since the responses.create API might not be available in this version,
+            # we'll use the chat.completions.create API with function calling instead
+            response = client.chat.completions.create(
                 model="gpt-4.1-nano",
-                input=[
+                messages=[
                     {
                         "role": "system",
-                        "content": [
-                            {
-                                "type": "input_text",
-                                "text": system_message
-                            }
-                        ]
+                        "content": system_message
                     },
                     {
                         "role": "user",
@@ -315,83 +313,83 @@ def crop_recipe_image():
                         ]
                     }
                 ],
-                text={
-                    "format": {
-                        "type": "text"
-                    }
-                },
-                reasoning={},
                 tools=[
                     {
                         "type": "function",
-                        "name": "crop_image",
-                        "description": "Crop an image based on the bounding box provided as an input",
-                        "parameters": {
-                            "type": "object",
-                            "required": [
-                                "cover_type",
-                                "bbox"
-                            ],
-                            "properties": {
-                                "cover_type": {
-                                    "type": "string",
-                                    "enum": [
-                                        "dish_photo",
-                                        "title_crop"
-                                    ],
-                                    "description": "Type of cover image to select"
-                                },
-                                "bbox": {
-                                    "type": "object",
-                                    "required": [
-                                        "x",
-                                        "y",
-                                        "width",
-                                        "height"
-                                    ],
-                                    "properties": {
-                                        "x": {
-                                            "type": "number",
-                                            "description": "X coordinate of the bounding box"
-                                        },
-                                        "y": {
-                                            "type": "number",
-                                            "description": "Y coordinate of the bounding box"
-                                        },
-                                        "width": {
-                                            "type": "number",
-                                            "description": "Width of the bounding box"
-                                        },
-                                        "height": {
-                                            "type": "number",
-                                            "description": "Height of the bounding box"
-                                        }
+                        "function": {
+                            "name": "crop_image",
+                            "description": "Crop an image based on the bounding box provided as an input",
+                            "parameters": {
+                                "type": "object",
+                                "required": [
+                                    "cover_type",
+                                    "bbox"
+                                ],
+                                "properties": {
+                                    "cover_type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "dish_photo",
+                                            "title_crop"
+                                        ],
+                                        "description": "Type of cover image to select"
                                     },
-                                    "additionalProperties": False
+                                    "bbox": {
+                                        "type": "object",
+                                        "required": [
+                                            "x",
+                                            "y",
+                                            "width",
+                                            "height"
+                                        ],
+                                        "properties": {
+                                            "x": {
+                                                "type": "number",
+                                                "description": "X coordinate of the bounding box"
+                                            },
+                                            "y": {
+                                                "type": "number",
+                                                "description": "Y coordinate of the bounding box"
+                                            },
+                                            "width": {
+                                                "type": "number",
+                                                "description": "Width of the bounding box"
+                                            },
+                                            "height": {
+                                                "type": "number",
+                                                "description": "Height of the bounding box"
+                                            }
+                                        }
+                                    }
                                 }
-                            },
-                            "additionalProperties": False
-                        },
-                        "strict": True
+                            }
+                        }
                     }
                 ],
+                tool_choice={"type": "function", "function": {"name": "crop_image"}},
                 temperature=1,
-                max_output_tokens=2048,
-                top_p=1,
-                store=True
+                max_tokens=2048
             )
 
             # Check if we have a valid tool call response
-            if hasattr(response, 'tool_calls') and response.tool_calls and len(response.tool_calls) > 0:
-                tool_call = response.tool_calls[0]
-                if tool_call.name == "crop_image" and hasattr(tool_call, 'input'):
-                    # Extract bounding box parameters
-                    tool_input = tool_call.input
-                    cover_type = tool_input.get('cover_type', 'title_crop')
-                    bbox = tool_input.get('bbox', {})
-                    
-                    logger.info(f"Detected bounding box: {bbox}")
-                    logger.info(f"Cover type: {cover_type}")
+            if hasattr(response, 'choices') and response.choices and response.choices[0].message.tool_calls:
+                tool_call = response.choices[0].message.tool_calls[0]
+                if tool_call.function.name == "crop_image":
+                    # Parse function arguments from JSON string
+                    try:
+                        import json
+                        tool_input = json.loads(tool_call.function.arguments)
+                        cover_type = tool_input.get('cover_type', 'title_crop')
+                        bbox = tool_input.get('bbox', {})
+                        
+                        logger.info(f"Detected bounding box: {bbox}")
+                        logger.info(f"Cover type: {cover_type}")
+                    except Exception as json_error:
+                        logger.error(f"Error parsing tool call arguments: {json_error}")
+                        return jsonify({
+                            "success": False,
+                            "error": "Failed to parse image cropping instructions"
+                        }), 500
                     
                     # Crop the image using the bounding box
                     cropped_image = crop_image(pil_image, bbox)
