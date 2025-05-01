@@ -292,10 +292,9 @@ def crop_recipe_image():
         try:
             logger.info("Calling OpenAI to detect bounding box")
             
-            # Since the responses.create API might not be available in this version,
-            # we'll use the chat.completions.create API with function calling instead
+            # Use the chat.completions.create API with function calling
             response = client.chat.completions.create(
-                model="gpt-4.1-nano",
+                model="gpt-4-vision-preview",  # Using vision model to analyze the image
                 messages=[
                     {
                         "role": "system",
@@ -313,52 +312,49 @@ def crop_recipe_image():
                         ]
                     }
                 ],
-                tools=[
+                functions=[
                     {
-                        "type": "function",
-                        "function": {
-                            "name": "crop_image",
-                            "description": "Crop an image based on the bounding box provided as an input",
-                            "parameters": {
-                                "type": "object",
-                                "required": [
-                                    "cover_type",
-                                    "bbox"
-                                ],
-                                "properties": {
-                                    "cover_type": {
-                                        "type": "string",
-                                        "enum": [
-                                            "dish_photo",
-                                            "title_crop"
-                                        ],
-                                        "description": "Type of cover image to select"
-                                    },
-                                    "bbox": {
-                                        "type": "object",
-                                        "required": [
-                                            "x",
-                                            "y",
-                                            "width",
-                                            "height"
-                                        ],
-                                        "properties": {
-                                            "x": {
-                                                "type": "number",
-                                                "description": "X coordinate of the bounding box"
-                                            },
-                                            "y": {
-                                                "type": "number",
-                                                "description": "Y coordinate of the bounding box"
-                                            },
-                                            "width": {
-                                                "type": "number",
-                                                "description": "Width of the bounding box"
-                                            },
-                                            "height": {
-                                                "type": "number",
-                                                "description": "Height of the bounding box"
-                                            }
+                        "name": "crop_image",
+                        "description": "Crop an image based on the bounding box provided as an input",
+                        "parameters": {
+                            "type": "object",
+                            "required": [
+                                "cover_type",
+                                "bbox"
+                            ],
+                            "properties": {
+                                "cover_type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "dish_photo",
+                                        "title_crop"
+                                    ],
+                                    "description": "Type of cover image to select"
+                                },
+                                "bbox": {
+                                    "type": "object",
+                                    "required": [
+                                        "x",
+                                        "y",
+                                        "width",
+                                        "height"
+                                    ],
+                                    "properties": {
+                                        "x": {
+                                            "type": "number",
+                                            "description": "X coordinate of the bounding box"
+                                        },
+                                        "y": {
+                                            "type": "number",
+                                            "description": "Y coordinate of the bounding box"
+                                        },
+                                        "width": {
+                                            "type": "number",
+                                            "description": "Width of the bounding box"
+                                        },
+                                        "height": {
+                                            "type": "number",
+                                            "description": "Height of the bounding box"
                                         }
                                     }
                                 }
@@ -366,58 +362,67 @@ def crop_recipe_image():
                         }
                     }
                 ],
-                tool_choice={"type": "function", "function": {"name": "crop_image"}},
-                temperature=1,
-                max_tokens=2048
+                function_call={"name": "crop_image"},
+                temperature=0.7,
+                max_tokens=1024
             )
 
-            # Check if we have a valid tool call response
-            if hasattr(response, 'choices') and response.choices and response.choices[0].message.tool_calls:
-                tool_call = response.choices[0].message.tool_calls[0]
-                if tool_call.function.name == "crop_image":
+            # Check if we have a valid function call response
+            if (response.choices and 
+                response.choices[0].message and 
+                hasattr(response.choices[0].message, 'function_call')):
+                
+                function_call = response.choices[0].message.function_call
+                if function_call.name == "crop_image":
                     # Parse function arguments from JSON string
                     try:
-                        import json
-                        tool_input = json.loads(tool_call.function.arguments)
+                        # Parse the function arguments
+                        tool_input = json.loads(function_call.arguments)
                         cover_type = tool_input.get('cover_type', 'title_crop')
                         bbox = tool_input.get('bbox', {})
                         
                         logger.info(f"Detected bounding box: {bbox}")
                         logger.info(f"Cover type: {cover_type}")
+                        
+                        # Crop the image using the bounding box
+                        cropped_image = crop_image(pil_image, bbox)
+                        
+                        # Convert cropped image back to base64
+                        cropped_base64 = pil_image_to_base64(cropped_image)
+                        
+                        if not cropped_base64:
+                            return jsonify({
+                                "success": False,
+                                "error": "Failed to convert cropped image to base64"
+                            }), 500
+                        
+                        return jsonify({
+                            "success": True,
+                            "cover_type": cover_type,
+                            "cropped_image": cropped_base64
+                        })
                     except Exception as json_error:
-                        logger.error(f"Error parsing tool call arguments: {json_error}")
+                        logger.error(f"Error parsing function arguments: {json_error}")
+                        # Fall back to returning the original image
                         return jsonify({
-                            "success": False,
-                            "error": "Failed to parse image cropping instructions"
-                        }), 500
-                    
-                    # Crop the image using the bounding box
-                    cropped_image = crop_image(pil_image, bbox)
-                    
-                    # Convert cropped image back to base64
-                    cropped_base64 = pil_image_to_base64(cropped_image)
-                    
-                    if not cropped_base64:
-                        return jsonify({
-                            "success": False,
-                            "error": "Failed to convert cropped image to base64"
-                        }), 500
-                    
-                    return jsonify({
-                        "success": True,
-                        "cover_type": cover_type,
-                        "cropped_image": cropped_base64
-                    })
+                            "success": True,
+                            "cover_type": "original",
+                            "cropped_image": image_data,
+                            "message": "Failed to parse cropping instructions, returning original"
+                        })
                 else:
-                    logger.error("Invalid tool call response")
+                    logger.error("Invalid function call name")
             else:
-                logger.error("No valid tool call in response")
-                
+                logger.error("No valid function call in response")
+            
             # If we get here, something went wrong with the OpenAI response
+            # Fall back to returning the original image
             return jsonify({
-                "success": False,
-                "error": "Failed to detect recipe image area"
-            }), 500
+                "success": True,
+                "cover_type": "original",
+                "cropped_image": image_data,
+                "message": "Could not detect bounding box, returning original image"
+            })
             
         except Exception as e:
             logger.error(f"OpenAI API error: {e}")
