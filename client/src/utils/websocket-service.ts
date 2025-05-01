@@ -36,21 +36,31 @@ export function connectToWebSocket(): Promise<string> {
   connectionPromise = new Promise((resolve, reject) => {
     try {
       // Create WebSocket connection
+      // Use the full URL from the current window location
+      // This ensures we connect to the same server that's serving the application
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const hostname = window.location.hostname;
+      const port = window.location.port;
+      
+      // Construct the WebSocket URL with explicit parts to avoid undefined values
+      // Important: We use the direct domain from the current page to avoid localhost references
+      const wsUrl = `${protocol}//${hostname}${port ? ':' + port : ''}/ws`;
       
       console.log('Connecting to WebSocket server at:', wsUrl);
-      socket = new WebSocket(wsUrl);
+      
+      // Create new WebSocket and ensure it's not null in this block
+      const newSocket = new WebSocket(wsUrl);
+      socket = newSocket;
       
       // Generate a client ID to use for this connection
       const newClientId = generateClientId();
       
       // Handle connection open
-      socket.addEventListener('open', () => {
+      newSocket.addEventListener('open', () => {
         console.log('WebSocket connection established');
         
         // Send registration message with client ID
-        socket.send(JSON.stringify({
+        newSocket.send(JSON.stringify({
           type: 'register',
           clientId: newClientId
         }));
@@ -62,7 +72,7 @@ export function connectToWebSocket(): Promise<string> {
         // but also set a timeout in case confirmation doesn't come
         const timeoutId = setTimeout(() => {
           console.log('WebSocket registration confirmation timed out, using client ID anyway');
-          resolve(clientId);
+          resolve(newClientId);
           connectionPromise = null;
         }, 3000);
         
@@ -73,20 +83,22 @@ export function connectToWebSocket(): Promise<string> {
             if (data.type === 'register_confirm' && data.clientId === newClientId) {
               console.log('WebSocket connected with client ID:', newClientId);
               clearTimeout(timeoutId);
-              resolve(clientId);
+              resolve(newClientId);
               connectionPromise = null;
-              socket?.removeEventListener('message', confirmHandler);
+              
+              // Remove the event listener
+              newSocket.removeEventListener('message', confirmHandler);
             }
           } catch (error) {
             // Ignore parsing errors for non-JSON messages
           }
         };
         
-        socket.addEventListener('message', confirmHandler);
+        newSocket.addEventListener('message', confirmHandler);
       });
       
       // Handle messages from the server
-      socket.addEventListener('message', (event) => {
+      newSocket.addEventListener('message', (event) => {
         try {
           const data = JSON.parse(event.data);
           
@@ -105,19 +117,20 @@ export function connectToWebSocket(): Promise<string> {
             );
           }
         } catch (error) {
-          console.error('Error processing WebSocket message:', error);
+          // Ignore parsing errors for non-JSON messages
         }
       });
       
       // Handle connection errors
-      socket.addEventListener('error', (error) => {
+      newSocket.addEventListener('error', (error) => {
         console.error('WebSocket connection error:', error);
+        socket = null;
         connectionPromise = null;
         reject(new Error('Failed to establish WebSocket connection'));
       });
       
       // Handle connection close
-      socket.addEventListener('close', () => {
+      newSocket.addEventListener('close', () => {
         console.log('WebSocket connection closed');
         socket = null;
         connectionPromise = null;
@@ -125,6 +138,7 @@ export function connectToWebSocket(): Promise<string> {
       
     } catch (error) {
       console.error('Failed to set up WebSocket connection:', error);
+      socket = null;
       connectionPromise = null;
       reject(error);
     }
