@@ -294,7 +294,7 @@ def crop_recipe_image():
             
             # Use the chat.completions.create API with function calling
             response = client.chat.completions.create(
-                model="gpt-4-vision-preview",  # Using vision model to analyze the image
+                model="gpt-4o",  # the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
                 messages=[
                     {
                         "role": "system",
