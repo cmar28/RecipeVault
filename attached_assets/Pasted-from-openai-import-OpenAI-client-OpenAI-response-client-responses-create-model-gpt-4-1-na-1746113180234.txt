@@ -1,0 +1,81 @@
+from openai import OpenAI
+client = OpenAI()
+
+response = client.responses.create(
+  model="gpt-4.1-nano",
+  input=[
+    {
+      "role": "system",
+      "content": [
+        {
+          "type": "input_text",
+          "text": "You are responsible for extracting the cover image of the recipe included in the image attached. If a section of the image contains an image of the finished dish crop the image to identify the picture of the dish. Otherwise crop the image to extract the title of the recipe. Return the cropped image."
+        }
+      ]
+    },
+  ],
+  text={
+    "format": {
+      "type": "text"
+    }
+  },
+  reasoning={},
+  tools=[
+    {
+      "type": "function",
+      "name": "crop_image",
+      "description": "Crop an image based on the bounding box provided as an input",
+      "parameters": {
+        "type": "object",
+        "required": [
+          "cover_type",
+          "bbox"
+        ],
+        "properties": {
+          "cover_type": {
+            "type": "string",
+            "enum": [
+              "dish_photo",
+              "title_crop"
+            ],
+            "description": "Type of cover image to select"
+          },
+          "bbox": {
+            "type": "object",
+            "required": [
+              "x",
+              "y",
+              "width",
+              "height"
+            ],
+            "properties": {
+              "x": {
+                "type": "number",
+                "description": "X coordinate of the bounding box"
+              },
+              "y": {
+                "type": "number",
+                "description": "Y coordinate of the bounding box"
+              },
+              "width": {
+                "type": "number",
+                "description": "Width of the bounding box"
+              },
+              "height": {
+                "type": "number",
+                "description": "Height of the bounding box"
+              }
+            },
+            "additionalProperties": False
+          }
+        },
+        "additionalProperties": False
+      },
+      "strict": True
+    }
+  ],
+  temperature=1,
+  max_output_tokens=2048,
+  top_p=1,
+  store=True
+)
