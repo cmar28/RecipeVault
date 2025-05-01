@@ -9,7 +9,11 @@ import RecipeCard from "@/components/recipe-card";
 import PhotoOptionsModal from "@/components/photo-options-modal";
 import RecipeProcessingModal, { ProcessingStage } from "@/components/recipe-processing-modal";
 import { Recipe } from "@shared/schema";
-import { uploadRecipeImage, RECIPE_PROCESSING_STAGE_EVENT } from "@/utils/recipe-image-service";
+import { uploadRecipeImage } from "@/utils/recipe-image-service";
+import { 
+  RECIPE_PROCESSING_STAGE_EVENT,
+  RECIPE_PROCESSING_FALLBACK_EVENT
+} from "@/utils/websocket-service";
 import { useToast } from "@/hooks/use-toast";
 
 const Home = () => {
@@ -186,6 +190,8 @@ const Home = () => {
       const customEvent = event as CustomEvent<ProcessingStage>;
       const updatedStage = customEvent.detail;
       
+      console.log('Received processing stage update:', updatedStage);
+      
       // Update the processing stages
       setProcessingStages(prevStages => {
         return prevStages.map(stage => {
@@ -197,15 +203,29 @@ const Home = () => {
       });
     };
     
+    // Register the fallback event handler for when WebSocket updates aren't available
+    const fallbackHandler = (event: Event) => {
+      const customEvent = event as CustomEvent<{complete: boolean}>;
+      
+      console.log('Received fallback event:', customEvent.detail);
+      
+      // If we get a fallback complete event, update all stages to completed
+      if (customEvent.detail.complete) {
+        console.log('Using fallback status updates - WebSocket updates not delivered');
+      }
+    };
+    
     window.addEventListener('show-photo-modal', showPhotoModalHandler);
     window.addEventListener('process-recipe-image', processRecipeImageHandler as EventListener);
     window.addEventListener(RECIPE_PROCESSING_STAGE_EVENT, processingStageUpdateHandler as EventListener);
+    window.addEventListener(RECIPE_PROCESSING_FALLBACK_EVENT, fallbackHandler as EventListener);
     
     // Cleanup event listeners
     return () => {
       window.removeEventListener('show-photo-modal', showPhotoModalHandler);
       window.removeEventListener('process-recipe-image', processRecipeImageHandler as EventListener);
       window.removeEventListener(RECIPE_PROCESSING_STAGE_EVENT, processingStageUpdateHandler as EventListener);
+      window.removeEventListener(RECIPE_PROCESSING_FALLBACK_EVENT, fallbackHandler as EventListener);
     };
   }, [toast, uploadMutation]);
 

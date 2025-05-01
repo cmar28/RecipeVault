@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 import { verifyFirebaseToken } from "./firebase-admin";
 import axios from "axios";
 import { log } from "./vite";
+import { WebSocketServer, WebSocket } from 'ws';
 
 // Configure multer for memory storage
 const upload = multer({

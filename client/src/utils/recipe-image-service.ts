@@ -1,11 +1,13 @@
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { auth } from "@/lib/firebase";
 import { ProcessingStage } from "@/components/recipe-processing-modal";
+import { 
+  getClientId, 
+  RECIPE_PROCESSING_STAGE_EVENT,
+  RECIPE_PROCESSING_FALLBACK_EVENT
+} from "@/utils/websocket-service";
 
-// Define an event for reporting processing stage updates
-export const RECIPE_PROCESSING_STAGE_EVENT = 'recipe-processing-stage-update';
-
-// Helper to dispatch processing stage updates
+// Helper to dispatch processing stage updates for local fallback updates
 export function updateProcessingStage(stage: ProcessingStage) {
   window.dispatchEvent(
     new CustomEvent(RECIPE_PROCESSING_STAGE_EVENT, { detail: stage })
@@ -17,7 +19,11 @@ export function updateProcessingStage(stage: ProcessingStage) {
  * @param file The image file to upload
  * @returns A promise that resolves to the created recipe
  */
-export async function uploadRecipeImage(file: File): Promise<{recipe: any; message: string}> {
+export async function uploadRecipeImage(file: File): Promise<{
+  recipe: any; 
+  message: string;
+  realTimeUpdatesDelivered?: boolean;
+}> {
   try {
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -31,7 +37,12 @@ export async function uploadRecipeImage(file: File): Promise<{recipe: any; messa
       throw new Error(`Image size must be less than ${MAX_SIZE_MB}MB`);
     }
     
-    // Update processing stage: Uploading
+    // Get WebSocket client ID for real-time updates
+    const clientId = await getClientId();
+    console.log("Using client ID for real-time updates:", clientId);
+    
+    // Start with local upload status - this will be superseded by WebSocket
+    // updates if available, but gives immediate feedback either way
     updateProcessingStage({
       id: 'uploading',
       label: 'Uploading image',
@@ -43,22 +54,26 @@ export async function uploadRecipeImage(file: File): Promise<{recipe: any; messa
     formData.append('image', file);
     
     // Get current auth token from Firebase
-    let authHeader = {};
+    let headers: Record<string, string> = {
+      'X-Client-ID': clientId // Add client ID for WebSocket updates
+    };
+    
     if (auth.currentUser) {
       const token = await auth.currentUser.getIdToken();
       console.log("Firebase token obtained successfully");
-      authHeader = { 'Authorization': `Bearer ${token}` };
+      headers['Authorization'] = `Bearer ${token}`;
     } else {
       console.warn("No authenticated user found for image upload");
     }
     
-    // Update processing stage: Verifying
+    // Mark the upload as complete locally - server will update via WebSocket if available
     updateProcessingStage({
       id: 'uploading',
       label: 'Uploading image',
       status: 'success',
     });
     
+    // Set local status as processing verification - server will update via WebSocket if available
     updateProcessingStage({
       id: 'verifying',
       label: 'Verifying recipe image',
@@ -70,77 +85,93 @@ export async function uploadRecipeImage(file: File): Promise<{recipe: any; messa
     const response = await fetch('/api/recipes/from-image', {
       method: 'POST',
       body: formData,
-      headers: {
-        ...authHeader
-      }
+      headers
     });
     
     if (!response.ok) {
       // Try to get error message from response
       const errorData = await response.json();
       
-      // Determine which stage failed based on the error message
-      if (errorData.message?.includes('does not appear to contain a recipe')) {
-        updateProcessingStage({
-          id: 'verifying',
-          label: 'Verifying recipe image',
-          status: 'error',
-          message: 'The image does not contain a recipe'
-        });
-      } else if (errorData.message?.includes('extract recipe')) {
-        updateProcessingStage({
-          id: 'verifying',
-          label: 'Verifying recipe image',
-          status: 'success',
-        });
-        updateProcessingStage({
-          id: 'extracting',
-          label: 'Extracting recipe details',
-          status: 'error',
-          message: 'Failed to extract recipe information'
-        });
-      } else if (errorData.message?.includes('create recipe')) {
-        updateProcessingStage({
-          id: 'verifying',
-          label: 'Verifying recipe image',
-          status: 'success',
-        });
-        updateProcessingStage({
-          id: 'extracting',
-          label: 'Extracting recipe details',
-          status: 'success',
-        });
-        updateProcessingStage({
-          id: 'saving',
-          label: 'Saving recipe',
-          status: 'error',
-          message: 'Failed to save the recipe'
-        });
+      // If we're using fallback status updates (no WebSocket), 
+      // update the stages locally based on the error
+      if (errorData.realTimeUpdatesDelivered === false) {
+        // Determine which stage failed based on the error message
+        if (errorData.message?.includes('does not appear to contain a recipe')) {
+          updateProcessingStage({
+            id: 'verifying',
+            label: 'Verifying recipe image',
+            status: 'error',
+            message: 'The image does not contain a recipe'
+          });
+        } else if (errorData.message?.includes('extract recipe')) {
+          updateProcessingStage({
+            id: 'verifying',
+            label: 'Verifying recipe image',
+            status: 'success',
+          });
+          updateProcessingStage({
+            id: 'extracting',
+            label: 'Extracting recipe details',
+            status: 'error',
+            message: 'Failed to extract recipe information'
+          });
+        } else if (errorData.message?.includes('create recipe')) {
+          updateProcessingStage({
+            id: 'verifying',
+            label: 'Verifying recipe image',
+            status: 'success',
+          });
+          updateProcessingStage({
+            id: 'extracting',
+            label: 'Extracting recipe details',
+            status: 'success',
+          });
+          updateProcessingStage({
+            id: 'saving',
+            label: 'Saving recipe',
+            status: 'error',
+            message: 'Failed to save the recipe'
+          });
+        }
       }
       
       throw new Error(errorData.message || 'Failed to process recipe image');
     }
     
-    // All stages completed successfully
-    updateProcessingStage({
-      id: 'verifying',
-      label: 'Verifying recipe image',
-      status: 'success',
-    });
+    const result = await response.json();
     
-    updateProcessingStage({
-      id: 'extracting',
-      label: 'Extracting recipe details',
-      status: 'success',
-    });
+    // If WebSocket updates weren't delivered, use fallback status updates
+    if (result.realTimeUpdatesDelivered === false) {
+      console.log("WebSocket updates not delivered, using fallback updates");
+      
+      // If the request succeeded, all stages completed successfully
+      updateProcessingStage({
+        id: 'verifying',
+        label: 'Verifying recipe image',
+        status: 'success',
+      });
+      
+      updateProcessingStage({
+        id: 'extracting',
+        label: 'Extracting recipe details',
+        status: 'success',
+      });
+      
+      updateProcessingStage({
+        id: 'saving',
+        label: 'Saving recipe',
+        status: 'success',
+      });
+      
+      // Dispatch fallback event
+      window.dispatchEvent(
+        new CustomEvent(RECIPE_PROCESSING_FALLBACK_EVENT, { 
+          detail: { complete: true }
+        })
+      );
+    }
     
-    updateProcessingStage({
-      id: 'saving',
-      label: 'Saving recipe',
-      status: 'success',
-    });
-    
-    return await response.json();
+    return result;
   } catch (error) {
     if (error instanceof Error) {
       throw error;
