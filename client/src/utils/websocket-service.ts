@@ -49,12 +49,40 @@ export function connectToWebSocket(): Promise<string> {
       socket.addEventListener('open', () => {
         console.log('WebSocket connection established');
         
-        // Store and resolve with the client ID
-        clientId = newClientId;
-        resolve(clientId);
+        // Send registration message with client ID
+        socket.send(JSON.stringify({
+          type: 'register',
+          clientId: newClientId
+        }));
         
-        // Clear the promise so we can reconnect if needed
-        connectionPromise = null;
+        // Store the client ID
+        clientId = newClientId;
+        
+        // We'll resolve the promise after we get confirmation,
+        // but also set a timeout in case confirmation doesn't come
+        const timeoutId = setTimeout(() => {
+          console.log('WebSocket registration confirmation timed out, using client ID anyway');
+          resolve(clientId);
+          connectionPromise = null;
+        }, 3000);
+        
+        // Set up a one-time handler for the registration confirmation
+        const confirmHandler = (event: MessageEvent) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'register_confirm' && data.clientId === newClientId) {
+              console.log('WebSocket connected with client ID:', newClientId);
+              clearTimeout(timeoutId);
+              resolve(clientId);
+              connectionPromise = null;
+              socket?.removeEventListener('message', confirmHandler);
+            }
+          } catch (error) {
+            // Ignore parsing errors for non-JSON messages
+          }
+        };
+        
+        socket.addEventListener('message', confirmHandler);
       });
       
       // Handle messages from the server
