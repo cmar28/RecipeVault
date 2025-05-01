@@ -3,6 +3,8 @@ import base64
 from dotenv import load_dotenv
 import os
 import json
+import io
+from PIL import Image
 from openai import OpenAI
 import logging
 
@@ -21,6 +23,10 @@ app = Flask(__name__)
 # Initialize OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# Check if OPENAI_API_KEY is set
+if not os.getenv("OPENAI_API_KEY"):
+    logger.warning("OPENAI_API_KEY environment variable is not set. The AI service will not work properly.")
+
 
 def is_valid_base64_image(image_data):
     """Validate if the string is a valid base64 image."""
@@ -31,6 +37,44 @@ def is_valid_base64_image(image_data):
     except Exception as e:
         logger.error(f"Invalid base64 image: {e}")
         return False
+
+
+def base64_to_pil_image(base64_image):
+    """Convert base64 encoded image to PIL Image object."""
+    try:
+        image_data = base64.b64decode(base64_image)
+        return Image.open(io.BytesIO(image_data))
+    except Exception as e:
+        logger.error(f"Error converting base64 to PIL image: {e}")
+        return None
+
+
+def pil_image_to_base64(image, format="JPEG"):
+    """Convert PIL Image object to base64 encoded string."""
+    try:
+        buffer = io.BytesIO()
+        image.save(buffer, format=format)
+        return base64.b64encode(buffer.getvalue()).decode('utf-8')
+    except Exception as e:
+        logger.error(f"Error converting PIL image to base64: {e}")
+        return None
+
+
+def crop_image(image, bbox):
+    """Crop image based on bounding box coordinates."""
+    try:
+        # Extract coordinates from bounding box
+        x = max(0, int(bbox.get('x', 0) * image.width))
+        y = max(0, int(bbox.get('y', 0) * image.height))
+        width = min(int(bbox.get('width', 1) * image.width), image.width - x)
+        height = min(int(bbox.get('height', 1) * image.height), image.height - y)
+        
+        # Crop the image
+        cropped_image = image.crop((x, y, x + width, y + height))
+        return cropped_image
+    except Exception as e:
+        logger.error(f"Error cropping image: {e}")
+        return image  # Return original image if cropping fails
 
 
 @app.route('/verify', methods=['POST'])
@@ -209,6 +253,186 @@ def extract_recipe():
 
     except Exception as e:
         logger.error(f"Error extracting recipe: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/crop', methods=['POST'])
+def crop_recipe_image():
+    """Identify and crop the recipe image to focus on the dish or title."""
+    logger.info("Received request to crop recipe image")
+    try:
+        # Get the base64 encoded image from the request
+        data = request.json
+        if not data or 'image' not in data:
+            return jsonify({
+                "success": False,
+                "error": "No image provided"
+            }), 400
+
+        image_data = data['image']
+        # Validate the image data
+        if not is_valid_base64_image(image_data):
+            return jsonify({
+                "success": False,
+                "error": "Invalid image format"
+            }), 400
+
+        # Convert base64 to PIL Image
+        pil_image = base64_to_pil_image(image_data)
+        if not pil_image:
+            return jsonify({
+                "success": False,
+                "error": "Failed to process image"
+            }), 400
+
+        # Prepare system message for OpenAI
+        system_message = "You are responsible for extracting the cover image of the recipe included in the image attached. If a section of the image contains an image of the finished dish crop the image to identify the picture of the dish. Otherwise crop the image to extract the title of the recipe. Return the cropped image."
+
+        # Call OpenAI API for bounding box detection
+        try:
+            logger.info("Calling OpenAI to detect bounding box")
+            response = client.responses.create(
+                model="gpt-4.1-nano",
+                input=[
+                    {
+                        "role": "system",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": system_message
+                            }
+                        ]
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{image_data}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                text={
+                    "format": {
+                        "type": "text"
+                    }
+                },
+                reasoning={},
+                tools=[
+                    {
+                        "type": "function",
+                        "name": "crop_image",
+                        "description": "Crop an image based on the bounding box provided as an input",
+                        "parameters": {
+                            "type": "object",
+                            "required": [
+                                "cover_type",
+                                "bbox"
+                            ],
+                            "properties": {
+                                "cover_type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "dish_photo",
+                                        "title_crop"
+                                    ],
+                                    "description": "Type of cover image to select"
+                                },
+                                "bbox": {
+                                    "type": "object",
+                                    "required": [
+                                        "x",
+                                        "y",
+                                        "width",
+                                        "height"
+                                    ],
+                                    "properties": {
+                                        "x": {
+                                            "type": "number",
+                                            "description": "X coordinate of the bounding box"
+                                        },
+                                        "y": {
+                                            "type": "number",
+                                            "description": "Y coordinate of the bounding box"
+                                        },
+                                        "width": {
+                                            "type": "number",
+                                            "description": "Width of the bounding box"
+                                        },
+                                        "height": {
+                                            "type": "number",
+                                            "description": "Height of the bounding box"
+                                        }
+                                    },
+                                    "additionalProperties": False
+                                }
+                            },
+                            "additionalProperties": False
+                        },
+                        "strict": True
+                    }
+                ],
+                temperature=1,
+                max_output_tokens=2048,
+                top_p=1,
+                store=True
+            )
+
+            # Check if we have a valid tool call response
+            if hasattr(response, 'tool_calls') and response.tool_calls and len(response.tool_calls) > 0:
+                tool_call = response.tool_calls[0]
+                if tool_call.name == "crop_image" and hasattr(tool_call, 'input'):
+                    # Extract bounding box parameters
+                    tool_input = tool_call.input
+                    cover_type = tool_input.get('cover_type', 'title_crop')
+                    bbox = tool_input.get('bbox', {})
+                    
+                    logger.info(f"Detected bounding box: {bbox}")
+                    logger.info(f"Cover type: {cover_type}")
+                    
+                    # Crop the image using the bounding box
+                    cropped_image = crop_image(pil_image, bbox)
+                    
+                    # Convert cropped image back to base64
+                    cropped_base64 = pil_image_to_base64(cropped_image)
+                    
+                    if not cropped_base64:
+                        return jsonify({
+                            "success": False,
+                            "error": "Failed to convert cropped image to base64"
+                        }), 500
+                    
+                    return jsonify({
+                        "success": True,
+                        "cover_type": cover_type,
+                        "cropped_image": cropped_base64
+                    })
+                else:
+                    logger.error("Invalid tool call response")
+            else:
+                logger.error("No valid tool call in response")
+                
+            # If we get here, something went wrong with the OpenAI response
+            return jsonify({
+                "success": False,
+                "error": "Failed to detect recipe image area"
+            }), 500
+            
+        except Exception as e:
+            logger.error(f"OpenAI API error: {e}")
+            # Fall back to returning the original image
+            return jsonify({
+                "success": True,
+                "cover_type": "original",
+                "cropped_image": image_data,
+                "message": "Failed to crop image, returning original"
+            })
+
+    except Exception as e:
+        logger.error(f"Error cropping recipe image: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 

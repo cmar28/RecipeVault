@@ -129,6 +129,27 @@ async function extractRecipeFromImage(base64Image: string): Promise<{
   }
 }
 
+// Helper function to crop recipe image with Python AI service
+async function cropRecipeImage(base64Image: string): Promise<{
+  success: boolean;
+  message?: string;
+  cropped_image?: string;
+  cover_type?: string;
+}> {
+  try {
+    const response = await axios.post(`${AI_SERVICE_URL}/crop`, {
+      image: base64Image,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error cropping recipe image:", error);
+    return {
+      success: false,
+      message: "Failed to crop recipe image. Using original image."
+    };
+  }
+}
+
 // Middleware to verify and extract Firebase token
 const firebaseAuthMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -346,6 +367,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Saving processing status sent: ${savingProcessingSent}`);
       }
       
+      // Use AI to crop the recipe image to focus on the dish or title
+      log("Cropping recipe image to focus on dish or title");
+      const cropResult = await cropRecipeImage(base64Image);
+      
+      // Use cropped image if available, otherwise use original
+      const imageDataToStore = cropResult.success && cropResult.cropped_image 
+        ? cropResult.cropped_image 
+        : base64Image;
+      
+      // Log crop results for debugging (exclude image data due to size)
+      console.log(`Crop result success: ${cropResult.success}`);
+      console.log(`Crop type: ${cropResult.cover_type || 'Not detected'}`);
+      
       // Convert the extracted recipe to our schema format
       const recipeData = {
         title: extractionResult.recipe.title,
@@ -355,7 +389,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Pass arrays directly instead of joining as strings
         ingredients: extractionResult.recipe.ingredients,
         instructions: extractionResult.recipe.instructions,
-        imageUrl: null, // No image is stored
+        imageData: imageDataToStore, // Store the cropped image as base64
+        imageUrl: null, // We'll use imageData instead of URL
         createdBy: userId
       };
       
