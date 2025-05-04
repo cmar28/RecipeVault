@@ -4,7 +4,7 @@ Main Flask application module for AI Service
 
 import logging
 from flask import Flask
-from ai_service.routes import register_routes
+from routes import register_routes
 
 # Configure logging
 logging.basicConfig(

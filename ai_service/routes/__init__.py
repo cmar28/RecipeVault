@@ -2,7 +2,7 @@
 Routes package initialization for AI Service
 """
 
-from ai_service.routes import verify, extract, crop
+from . import verify, extract, crop
 
 def register_routes(app):
     """Register all routes with the Flask app"""
