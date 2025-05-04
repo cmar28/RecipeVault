@@ -11,7 +11,7 @@ import base64
 from io import BytesIO
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import is_valid_base64_image, base64_to_pil_image, pil_image_to_base64, crop_image
-from config import together_client, TOGETHER_MODEL
+from config import together_client, TOGETHER_MODEL, AI_PROVIDER
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -71,6 +71,16 @@ def register_route(app):
             # Call Together.ai API for bounding box detection
             try:
                 logger.info("Calling Together.ai to detect bounding box")
+                
+                # Check if Together client is initialized
+                if together_client is None:
+                    logger.error("Together client is not initialized. Cannot process request.")
+                    return jsonify({
+                        "success": True,
+                        "cover_type": "original",
+                        "cropped_image": image_data,
+                        "message": "Together.ai is not available. Please check API key. Returning original image."
+                    })
 
                 # Format the prompt with the image
                 messages = [
