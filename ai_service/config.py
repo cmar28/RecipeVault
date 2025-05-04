@@ -13,8 +13,9 @@ load_dotenv()
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Model provider configuration - can be 'openai' or 'together'
-AI_PROVIDER = os.getenv("AI_PROVIDER", "openai").lower()
+# Model provider configuration - change this value manually to switch providers
+# Options: "openai" or "together"
+AI_PROVIDER = "together"
 
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -23,27 +24,24 @@ openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 OPENAI_MODEL = "gpt-4o"  # Updated to the latest model
 TOGETHER_MODEL = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
 
-# Initialize Together client only if we have an API key or if we're using Together as provider
+# Initialize Together client only if we're using Together provider
 together_client = None
-if os.getenv("TOGETHER_API_KEY") or AI_PROVIDER == "together":
+if AI_PROVIDER == "together":
     try:
         from together import Together
-        together_client = Together(api_key=os.getenv("TOGETHER_API_KEY", "dummy_key_for_import_only"))
+        together_client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
         
-        # Override AI_PROVIDER if TOGETHER_API_KEY is missing but was requested
-        if AI_PROVIDER == "together" and not os.getenv("TOGETHER_API_KEY"):
+        # Check if Together API key is set
+        if not os.getenv("TOGETHER_API_KEY"):
             logger.warning(
-                "TOGETHER_API_KEY environment variable is not set but 'together' provider was requested. "
-                "Falling back to 'openai' provider."
+                "TOGETHER_API_KEY environment variable is not set. The Together.ai services will not work properly."
             )
-            AI_PROVIDER = "openai"
     except ImportError:
         logger.warning("Failed to import Together module. Together AI services will not be available.")
-        if AI_PROVIDER == "together":
-            logger.warning("Falling back to 'openai' provider due to import failure.")
-            AI_PROVIDER = "openai"
+        # Fall back to OpenAI if Together import fails
+        AI_PROVIDER = "openai"
 
-# Check if required API keys are set
+# Check if OpenAI API key is set when using OpenAI provider
 if AI_PROVIDER == "openai" and not os.getenv("OPENAI_API_KEY"):
     logger.warning(
         "OPENAI_API_KEY environment variable is not set. The OpenAI services will not work properly."
