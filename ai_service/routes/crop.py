@@ -5,8 +5,8 @@ Crop route module for AI Service
 import json
 import logging
 from flask import request, jsonify
-from ..utils import is_valid_base64_image, base64_to_pil_image, pil_image_to_base64, crop_image
-from ..config import openai_client
+from ai_service.utils import is_valid_base64_image, base64_to_pil_image, pil_image_to_base64, crop_image
+from ai_service.config import openai_client
 
 # Configure logging
 logger = logging.getLogger(__name__)
