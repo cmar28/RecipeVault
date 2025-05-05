@@ -191,17 +191,15 @@ def register_route(app):
                             "Failed to determine crop area, returning original image"
                         })
                 else:
-                    logger.warning("No function call in response")
+                    logger.warning("No tool calls in response")
+                    # Log the actual response for debugging
+                    logger.info(f"Response content: {response}")
                     # Fall back to returning the original image
                     return jsonify({
-                        "success":
-                        True,
-                        "cover_type":
-                        "original",
-                        "cropped_image":
-                        image_data,
-                        "message":
-                        "Failed to determine crop area, returning original image"
+                        "success": True,
+                        "cover_type": "original",
+                        "cropped_image": image_data,
+                        "message": "Failed to determine crop area, returning original image"
                     })
 
             except Exception as e:
