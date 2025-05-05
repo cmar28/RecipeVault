@@ -710,6 +710,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Export all recipes for a user
+  app.get("/api/recipes/export", async (req: Request, res: Response) => {
+    try {
+      // Get user ID from Firebase Auth
+      const userId = req.headers['x-firebase-uid'] as string;
+      
+      // Require authentication for exporting recipes
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required to export recipes" });
+      }
+      
+      // Get all recipes for the user, including their favorites
+      const userRecipes = await storage.getRecipes(userId);
+      const userFavorites = await storage.getFavoriteRecipes(userId);
+      
+      // Combine recipes and favorites, removing duplicates
+      const favoriteIds = new Set(userFavorites.map(recipe => recipe.id));
+      const ownedRecipes = userRecipes.filter(recipe => recipe.createdBy === userId);
+      
+      // Mark favorites in the export data
+      const exportData = {
+        recipes: ownedRecipes,
+        favorites: Array.from(favoriteIds)
+      };
+      
+      // Set the filename for the download
+      res.setHeader('Content-Disposition', 'attachment; filename="my-recipes.json"');
+      res.setHeader('Content-Type', 'application/json');
+      res.json(exportData);
+    } catch (error) {
+      console.error("Error exporting recipes:", error);
+      res.status(500).json({ message: "Failed to export recipes" });
+    }
+  });
+  
+  // Import recipes for a user
+  app.post("/api/recipes/import", async (req: Request, res: Response) => {
+    try {
+      // Get user ID from Firebase Auth
+      const userId = req.headers['x-firebase-uid'] as string;
+      
+      // Require authentication for importing recipes
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required to import recipes" });
+      }
+      
+      const importData = req.body;
+      
+      if (!importData || !importData.recipes || !Array.isArray(importData.recipes)) {
+        return res.status(400).json({ message: "Invalid import data format" });
+      }
+      
+      const importedRecipes: Recipe[] = [];
+      const favorites: number[] = importData.favorites || [];
+      
+      // Import recipes
+      for (const recipe of importData.recipes) {
+        // Prepare recipe data for insertion
+        const recipeData: InsertRecipe = {
+          title: recipe.title,
+          description: recipe.description,
+          imageUrl: recipe.imageUrl,
+          imageData: recipe.imageData,
+          prepTime: recipe.prepTime,
+          cookTime: recipe.cookTime,
+          servings: recipe.servings,
+          ingredients: recipe.ingredients,
+          instructions: recipe.instructions,
+          createdBy: userId // Set the current user as the creator
+        };
+        
+        // Validate and insert recipe
+        try {
+          const validatedData = insertRecipeSchema.parse(recipeData);
+          const newRecipe = await storage.createRecipe(validatedData);
+          importedRecipes.push(newRecipe);
+          
+          // Add to favorites if the original was a favorite
+          if (favorites.includes(recipe.id)) {
+            await storage.toggleFavorite(userId, newRecipe.id);
+          }
+        } catch (validationErr) {
+          console.error(`Validation error for recipe "${recipe.title}":`, validationErr);
+          // Continue with other recipes even if one fails
+        }
+      }
+      
+      res.status(201).json({
+        message: `Successfully imported ${importedRecipes.length} recipes`,
+        recipes: importedRecipes
+      });
+      
+    } catch (error) {
+      console.error("Error importing recipes:", error);
+      res.status(500).json({ message: "Failed to import recipes" });
+    }
+  });
+
   // Create the HTTP server
   const httpServer = createServer(app);
   
