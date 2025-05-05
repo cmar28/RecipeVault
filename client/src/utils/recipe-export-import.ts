@@ -1,16 +1,37 @@
 import { Recipe } from "@shared/schema";
 import { apiRequest } from "../lib/queryClient";
 import { toast } from "@/hooks/use-toast";
+import { auth } from "../lib/firebase";
+
+// Helper function to get the current Firebase authentication token
+async function getFirebaseToken(): Promise<string> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('User not authenticated');
+  }
+  
+  try {
+    const token = await currentUser.getIdToken();
+    return token;
+  } catch (error) {
+    console.error('Error getting Firebase token:', error);
+    throw new Error('Failed to get authentication token');
+  }
+}
 
 // Export recipes to a JSON file
 export async function exportRecipes() {
   try {
     console.log('Starting recipe export');
+    // Get the current Firebase token for authentication
+    const authToken = await getFirebaseToken();
+    
     // Fetch the export data from the server
     const response = await fetch('/api/recipes/data/export', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
       },
     });
 
@@ -88,12 +109,16 @@ export async function importRecipesFromFile(file: File): Promise<Recipe[]> {
       throw new Error("Invalid import data format: missing 'recipes' array");
     }
     
+    // Get the current Firebase token for authentication
+    const authToken = await getFirebaseToken();
+    
     // Send the data to the server
     console.log('Starting recipe import');
     const response = await fetch('/api/recipes/data/import', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
       },
       body: JSON.stringify(importData)
     });

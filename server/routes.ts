@@ -711,16 +711,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export all recipes for a user
-  app.get("/api/recipes/data/export", async (req: Request, res: Response) => {
+  app.get("/api/recipes/data/export", firebaseAuthMiddleware, async (req: Request, res: Response) => {
     console.log("Starting export process for recipes");
     try {
-      // Get user ID from Firebase Auth
+      // User ID is already verified by the firebaseAuthMiddleware
       const userId = req.headers['x-firebase-uid'] as string;
-      
-      // Require authentication for exporting recipes
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required to export recipes" });
-      }
       
       console.log(`Exporting recipes for user: ${userId}`);
       
@@ -766,15 +761,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Import recipes for a user
-  app.post("/api/recipes/data/import", async (req: Request, res: Response) => {
+  app.post("/api/recipes/data/import", firebaseAuthMiddleware, async (req: Request, res: Response) => {
     try {
-      // Get user ID from Firebase Auth
+      // User ID is already verified by the firebaseAuthMiddleware
       const userId = req.headers['x-firebase-uid'] as string;
-      
-      // Require authentication for importing recipes
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required to import recipes" });
-      }
       
       console.log(`Importing recipes for user: ${userId}`);
       
