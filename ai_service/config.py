@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 AI_PROVIDER = "openai"
 #AI_PROVIDER = "together"
 
-OPENAI_CROP_MODEL = "gpt-4o"  # Updated to the latest model
+OPENAI_CROP_MODEL = "gpt-4.1"  # Using gpt-4.1 model
 LLAMA_CROP_MODEL = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
 
 # Initialize OpenAI client
