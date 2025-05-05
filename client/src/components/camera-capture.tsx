@@ -119,33 +119,33 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="p-0 max-w-full w-full h-[100vh] max-h-[100vh] sm:max-w-md sm:max-h-[80vh] overflow-hidden fixed inset-0">
-        <div className="flex flex-col h-full">
+      <DialogContent className="p-0 w-screen h-screen sm:max-w-md sm:h-auto sm:max-h-[80vh] overflow-hidden top-0 left-0 translate-x-0 translate-y-0 rounded-none sm:rounded-lg">
+        <div className="flex flex-col h-full relative">
           {/* Camera header */}
-          <div className="bg-black text-white p-3 flex justify-between items-center">
+          <div className="bg-black text-white p-3 flex justify-between items-center z-20">
             <DialogTitle className="text-lg font-medium text-white">Take Photo</DialogTitle>
             <div className="flex gap-2">
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={switchCamera} 
-                className="h-8 w-8 text-white"
+                className="h-10 w-10 text-white"
               >
-                <RotateCcw size={18} />
+                <RotateCcw size={20} />
               </Button>
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={onClose} 
-                className="h-8 w-8 text-white"
+                className="h-10 w-10 text-white"
               >
-                <X size={18} />
+                <X size={20} />
               </Button>
             </div>
           </div>
           
           {/* Camera viewfinder */}
-          <div className="relative bg-black flex-1 flex items-center justify-center">
+          <div className="bg-black flex-1 flex items-center justify-center overflow-hidden">
             {error ? (
               <div className="text-white text-center p-6">
                 <p className="mb-4">{error}</p>
@@ -157,14 +157,14 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
                 autoPlay
                 playsInline
                 muted
-                className="max-h-full max-w-full object-contain"
+                className="w-full h-full object-cover"
               />
             )}
             <canvas ref={canvasRef} className="hidden" />
           </div>
           
           {/* Camera footer */}
-          <div className="bg-black p-6 flex justify-center items-center fixed bottom-0 left-0 right-0">
+          <div className="bg-black p-6 flex justify-center items-center z-20">
             <button
               className="h-24 w-24 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center p-0 border-4 border-gray-800 shadow-lg"
               disabled={!!error || !stream ? true : false}
@@ -172,11 +172,10 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
               aria-label="Take photo"
               style={{ 
                 touchAction: 'manipulation',
-                WebkitTapHighlightColor: 'transparent',
-                zIndex: 10005
+                WebkitTapHighlightColor: 'transparent'
               }}
             >
-              <div className="h-18 w-18 rounded-full border-4 border-gray-400" />
+              <div className="h-16 w-16 rounded-full border-4 border-gray-400" />
             </button>
           </div>
         </div>
