@@ -1,5 +1,5 @@
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
-import { auth } from "@/lib/firebase";
+import { auth, getCurrentUserToken } from "@/lib/firebase";
 import { ProcessingStage } from "@/components/recipe-processing-modal";
 import { 
   getClientId, 
@@ -58,12 +58,20 @@ export async function uploadRecipeImage(file: File): Promise<{
       'X-Client-ID': clientId // Add client ID for WebSocket updates
     };
     
-    if (auth.currentUser) {
-      const token = await auth.currentUser.getIdToken();
-      console.log("Firebase token obtained successfully");
-      headers['Authorization'] = `Bearer ${token}`;
-    } else {
-      console.warn("No authenticated user found for image upload");
+    try {
+      // Use the helper function to get the token with retry logic
+      const token = await getCurrentUserToken(true);
+      
+      if (token) {
+        console.log("Firebase token obtained successfully");
+        headers['Authorization'] = `Bearer ${token}`;
+      } else {
+        console.error("Failed to get authentication token");
+        throw new Error("Authentication required. Please sign in again.");
+      }
+    } catch (authError) {
+      console.error("Authentication error:", authError);
+      throw new Error("Failed to authenticate. Please sign out and sign in again.");
     }
     
     // Mark the upload as complete locally - server will update via WebSocket if available

@@ -46,3 +46,34 @@ export const logout = async () => {
 export const subscribeToAuthChanges = (callback: (user: User | null) => void) => {
   return onAuthStateChanged(auth, callback);
 };
+
+// Get current auth token with retry logic
+export const getCurrentUserToken = async (forceRefresh = true): Promise<string | null> => {
+  // If we have a current user, get the token
+  if (auth.currentUser) {
+    try {
+      return await auth.currentUser.getIdToken(forceRefresh);
+    } catch (error) {
+      console.error("Error getting ID token:", error);
+      return null;
+    }
+  }
+  
+  // If no current user, wait a bit and try again
+  // This helps in situations where auth state is still being established
+  return new Promise((resolve) => {
+    setTimeout(async () => {
+      if (auth.currentUser) {
+        try {
+          const token = await auth.currentUser.getIdToken(forceRefresh);
+          resolve(token);
+        } catch (error) {
+          console.error("Error getting ID token on retry:", error);
+          resolve(null);
+        }
+      } else {
+        resolve(null);
+      }
+    }, 500);
+  });
+};
