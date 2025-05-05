@@ -711,7 +711,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export all recipes for a user
-  app.get("/api/recipes/export", async (req: Request, res: Response) => {
+  app.get("/api/export-recipes", async (req: Request, res: Response) => {
     try {
       // Get user ID from Firebase Auth
       const userId = req.headers['x-firebase-uid'] as string;
@@ -721,6 +721,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Authentication required to export recipes" });
       }
       
+      console.log(`Exporting recipes for user: ${userId}`);
+      
       // Get all recipes for the user, including their favorites
       const userRecipes = await storage.getRecipes(userId);
       const userFavorites = await storage.getFavoriteRecipes(userId);
@@ -728,6 +730,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Combine recipes and favorites, removing duplicates
       const favoriteIds = new Set(userFavorites.map(recipe => recipe.id));
       const ownedRecipes = userRecipes.filter(recipe => recipe.createdBy === userId);
+      
+      console.log(`Found ${ownedRecipes.length} recipes to export`);
       
       // Mark favorites in the export data
       const exportData = {
@@ -746,7 +750,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Import recipes for a user
-  app.post("/api/recipes/import", async (req: Request, res: Response) => {
+  app.post("/api/import-recipes", async (req: Request, res: Response) => {
     try {
       // Get user ID from Firebase Auth
       const userId = req.headers['x-firebase-uid'] as string;
@@ -755,6 +759,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "Authentication required to import recipes" });
       }
+      
+      console.log(`Importing recipes for user: ${userId}`);
       
       const importData = req.body;
       

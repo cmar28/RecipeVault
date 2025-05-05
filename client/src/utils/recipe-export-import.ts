@@ -5,8 +5,9 @@ import { toast } from "@/hooks/use-toast";
 // Export recipes to a JSON file
 export async function exportRecipes() {
   try {
+    console.log('Starting recipe export');
     // Fetch the export data from the server
-    const response = await fetch('/api/recipes/export', {
+    const response = await fetch('/api/export-recipes', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -14,6 +15,7 @@ export async function exportRecipes() {
     });
 
     if (!response.ok) {
+      console.error('Export failed with status:', response.status);
       throw new Error(`Export failed: ${response.statusText}`);
     }
 
@@ -76,7 +78,8 @@ export async function importRecipesFromFile(file: File): Promise<Recipe[]> {
     }
     
     // Send the data to the server
-    const response = await fetch('/api/recipes/import', {
+    console.log('Starting recipe import');
+    const response = await fetch('/api/import-recipes', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
