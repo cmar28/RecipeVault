@@ -1,13 +1,14 @@
 import { useEffect, useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Plus, ChevronRight, ThumbsUp } from "lucide-react";
+import { Plus, ChevronRight, ThumbsUp, Download, Upload } from "lucide-react";
 import Header from "@/components/header";
 import BottomNavigation from "@/components/bottom-navigation";
 import RecipeList from "@/components/recipe-list";
 import RecipeCard from "@/components/recipe-card";
 import PhotoOptionsModal from "@/components/photo-options-modal";
 import RecipeProcessingModal, { ProcessingStage } from "@/components/recipe-processing-modal";
+import { ImportExportModal } from "@/components/import-export-modal";
 import { Recipe } from "@shared/schema";
 import { uploadRecipeImage } from "@/utils/recipe-image-service";
 import { 
@@ -21,6 +22,7 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [isImportExportModalOpen, setIsImportExportModalOpen] = useState(false);
   const [processingStages, setProcessingStages] = useState<ProcessingStage[]>([
     { id: 'uploading', label: 'Uploading image', status: 'pending' },
     { id: 'verifying', label: 'Verifying recipe image', status: 'pending' },
@@ -110,6 +112,11 @@ const Home = () => {
   // Handler for the floating action button (plus)
   const handleManualAddRecipe = () => {
     setLocation('/create');
+  };
+
+  // Handler for import/export button
+  const handleImportExport = () => {
+    setIsImportExportModalOpen(true);
   };
 
   const handleSearch = (query: string) => {
@@ -313,9 +320,23 @@ const Home = () => {
           
           {/* Main Recipes Section */}
           <div className="mb-4">
-            <h2 className="text-lg font-semibold mb-5 flex items-center text-foreground">
-              {searchQuery ? 'Found Recipes' : 'All Recipes'}
-            </h2>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-semibold flex items-center text-foreground">
+                {searchQuery ? 'Found Recipes' : 'All Recipes'}
+              </h2>
+              
+              {!searchQuery && recipes && recipes.length > 0 && (
+                <button 
+                  className="text-sm text-primary flex items-center hover:underline"
+                  onClick={handleImportExport}
+                  data-testid="import-export-button"
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  <Upload className="h-4 w-4 mr-1" />
+                  Import/Export
+                </button>
+              )}
+            </div>
             
             <RecipeList 
               recipes={filteredRecipes || []} 
@@ -343,6 +364,12 @@ const Home = () => {
         onClose={() => {}} // Disable closing during processing
         stages={processingStages}
         title="Processing Your Recipe"
+      />
+      
+      {/* Import/Export Modal */}
+      <ImportExportModal 
+        isOpen={isImportExportModalOpen}
+        onClose={() => setIsImportExportModalOpen(false)}
       />
     </div>
   );

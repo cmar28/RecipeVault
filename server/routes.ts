@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { recipes, insertRecipeSchema, insertUserSchema } from "@shared/schema";
+import { recipes, insertRecipeSchema, insertUserSchema, Recipe, InsertRecipe } from "@shared/schema";
 import multer from "multer";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";

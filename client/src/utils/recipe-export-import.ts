@@ -1,6 +1,6 @@
 import { Recipe } from "@shared/schema";
 import { apiRequest } from "../lib/queryClient";
-import { toast } from "@hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 // Export recipes to a JSON file
 export async function exportRecipes() {
@@ -76,9 +76,9 @@ export async function importRecipesFromFile(file: File): Promise<Recipe[]> {
     }
     
     // Send the data to the server
-    const response = await apiRequest('/api/recipes/import', {
+    const response = await apiRequest<{message: string, recipes: Recipe[]}>('/api/recipes/import', {
       method: 'POST',
-      body: JSON.stringify(importData),
+      body: JSON.stringify(importData)
     });
     
     // Show success message
