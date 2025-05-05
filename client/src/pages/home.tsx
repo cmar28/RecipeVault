@@ -143,9 +143,23 @@ const Home = () => {
   // Handle photo captured from camera component
   const handleCameraCapture = (file: File) => {
     console.log("Photo captured successfully:", file.name, file.size);
-    // Process the captured photo
-    setIsProcessingImage(true);
-    uploadMutation.mutate(file);
+    
+    // First close the camera
+    setIsCameraOpen(false);
+    
+    // Reset processing stages
+    setProcessingStages([
+      { id: 'uploading', label: 'Uploading image', status: 'pending' },
+      { id: 'verifying', label: 'Verifying recipe image', status: 'pending' },
+      { id: 'extracting', label: 'Extracting recipe details', status: 'pending' },
+      { id: 'saving', label: 'Saving recipe', status: 'pending' }
+    ]);
+    
+    // Then show processing modal and start upload
+    setTimeout(() => {
+      setIsProcessingImage(true);
+      uploadMutation.mutate(file);
+    }, 300); // Small delay to ensure camera is fully closed before showing modal
   };
 
   const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -376,7 +390,23 @@ const Home = () => {
       {/* Recipe Processing Modal */}
       <RecipeProcessingModal
         isOpen={isProcessingImage}
-        onClose={() => {}} // Disable closing during processing
+        onClose={() => {
+          // Only allow closing when an error has occurred or processing is complete
+          const hasError = processingStages.some(stage => stage.status === 'error');
+          const isComplete = processingStages.every(stage => 
+            stage.status === 'success' || stage.status === 'error'
+          );
+          
+          if (hasError || isComplete) {
+            setIsProcessingImage(false);
+            
+            // If completed successfully, refresh the recipes list
+            if (isComplete && !hasError) {
+              queryClient.invalidateQueries({ queryKey: ['/api/recipes'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/favorites'] });
+            }
+          }
+        }}
         stages={processingStages}
         title="Processing Your Recipe"
       />

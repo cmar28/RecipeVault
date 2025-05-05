@@ -26,9 +26,26 @@ const RecipeProcessingModal = ({
   stages,
   title = "Processing Recipe"
 }: RecipeProcessingModalProps) => {
+  // Check if any stage has an error status to determine if we allow closing
+  const hasError = stages.some(stage => stage.status === 'error');
+  
+  // Check if all stages are completed (success or error) to determine if processing is done
+  const isProcessingComplete = stages.every(stage => 
+    stage.status === 'success' || stage.status === 'error'
+  );
+  
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog 
+      open={isOpen} 
+      onOpenChange={(open) => {
+        // Only allow closing through the onOpenChange prop if there's an error
+        // or if all processing is complete
+        if (!open && (hasError || isProcessingComplete)) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-md z-50">
         <DialogHeader>
           <DialogTitle className="text-center text-xl">{title}</DialogTitle>
         </DialogHeader>
