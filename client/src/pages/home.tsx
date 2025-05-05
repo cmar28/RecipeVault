@@ -11,6 +11,7 @@ import RecipeProcessingModal, { ProcessingStage } from "@/components/recipe-proc
 import { ImportExportModal } from "@/components/import-export-modal";
 import { Recipe } from "@shared/schema";
 import { uploadRecipeImage } from "@/utils/recipe-image-service";
+import { capturePhotoFromCamera } from "@/utils/camera-service";
 import { 
   RECIPE_PROCESSING_STAGE_EVENT,
   RECIPE_PROCESSING_FALLBACK_EVENT
@@ -125,8 +126,26 @@ const Home = () => {
 
   const handlePhotoOptionSelected = (option: "camera" | "upload") => {
     if (option === "camera") {
-      // To be implemented in a future update
-      alert("Camera functionality will be available in a future update");
+      // Set loading state while accessing camera
+      setIsProcessingImage(true);
+      
+      // Request camera access and capture photo
+      capturePhotoFromCamera()
+        .then(file => {
+          // Process the captured photo
+          uploadMutation.mutate(file);
+        })
+        .catch(error => {
+          // Handle any errors (camera access denied, user canceled, etc.)
+          console.error("Camera error:", error);
+          toast({
+            title: "Camera error",
+            description: error.message || "There was a problem accessing your camera",
+            variant: "destructive",
+            duration: 3000,
+          });
+          setIsProcessingImage(false);
+        });
     } else if (option === "upload") {
       // Trigger file input click
       fileInputRef.current?.click();
