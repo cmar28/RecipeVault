@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 # Model provider configuration - change this value manually to switch providers
 # Options: "openai" or "together"
-AI_PROVIDER = "together"
-#AI_PROVIDER = "openai"
+AI_PROVIDER = "openai"
+#AI_PROVIDER = "together"
 
 OPENAI_CROP_MODEL = "gpt-4o"  # Updated to the latest model
 LLAMA_CROP_MODEL = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"

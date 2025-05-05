@@ -94,6 +94,13 @@ Identifies and crops the recipe image to focus on the dish or title.
 }
 ```
 
+**Coordinate System**:
+Both AI providers (OpenAI and Together.ai) use a standardized normalized coordinate system:
+- All bounding box coordinates are in the format: `{xmin, ymin, xmax, ymax}`
+- All coordinates are normalized to a scale of 0-1000, where:
+  - (0,0) is the top-left corner of the image
+  - (1000,1000) is the bottom-right corner of the image
+
 ## Testing
 
 To test the service, you can use the following scripts:
