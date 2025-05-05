@@ -153,11 +153,18 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
       const file = new File([blob], "camera-photo.jpg", { type: "image/jpeg" });
       
       try {
-        // Call the capture callback
-        onCapture(file);
+        // Stop camera first to ensure resources are released
+        stopCamera();
         
-        // Close the camera dialog
+        // Force dialog to close immediately
+        // This is important for mobile devices
         onClose();
+        
+        // Small delay to ensure UI updates before processing begins
+        setTimeout(() => {
+          // Call the capture callback with the image file
+          onCapture(file);
+        }, 300);
       } catch (error) {
         console.error("Error capturing photo:", error);
         toast({
@@ -174,8 +181,29 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="p-0 w-full h-[100dvh] sm:max-w-md sm:h-auto sm:max-h-[80vh] overflow-hidden top-0 left-0 translate-x-0 translate-y-0 rounded-none sm:rounded-lg">
+    <Dialog 
+      open={isOpen} 
+      onOpenChange={(open) => {
+        if (!open) {
+          // When dialog is closing, first stop the camera
+          stopCamera();
+          // Then call the original onClose handler
+          onClose();
+        }
+      }}
+      modal={true}
+    >
+      <DialogContent 
+        className="p-0 w-full h-[100dvh] sm:max-w-md sm:h-auto sm:max-h-[80vh] overflow-hidden top-0 left-0 translate-x-0 translate-y-0 rounded-none sm:rounded-lg z-50"
+        onEscapeKeyDown={() => {
+          stopCamera();
+          onClose();
+        }}
+        onInteractOutside={() => {
+          stopCamera();
+          onClose();
+        }}
+      >
         <DialogTitle className="sr-only">Take Photo</DialogTitle>
         <DialogDescription className="sr-only">Use your camera to take a photo of a recipe</DialogDescription>
         <div className="flex flex-col h-full" style={{ maxHeight: '100dvh' }}>
