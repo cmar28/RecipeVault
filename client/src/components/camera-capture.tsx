@@ -6,7 +6,10 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Camera, X, RotateCcw } from "lucide-react";
+import { Camera, X, RotateCcw, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { getCurrentUserToken } from "@/lib/firebase";
 
 type CameraCaptureProps = {
   isOpen: boolean;
@@ -20,10 +23,15 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(false);
+  const { toast } = useToast();
+  const { currentUser } = useAuth();
 
   // Start camera when dialog opens
   useEffect(() => {
     if (isOpen) {
+      // Verify authentication status when opening camera
+      verifyAuthStatus();
       startCamera();
     } else {
       stopCamera();
@@ -33,6 +41,33 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
       stopCamera();
     };
   }, [isOpen, facingMode]);
+
+  // Verify that authentication is active and valid
+  const verifyAuthStatus = async () => {
+    if (!currentUser) {
+      setError("You must be signed in to use the camera");
+      return false;
+    }
+
+    // Check if we can get a valid token
+    try {
+      setIsCheckingAuth(true);
+      const token = await getCurrentUserToken(true);
+      setIsCheckingAuth(false);
+      
+      if (!token) {
+        setError("Authentication error. Please sign out and sign in again.");
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error("Auth verification error:", err);
+      setIsCheckingAuth(false);
+      setError("Authentication error. Please try signing out and back in.");
+      return false;
+    }
+  };
 
   const startCamera = async () => {
     try {
@@ -83,8 +118,19 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
     }
   };
 
-  const handleCapture = () => {
+  const handleCapture = async () => {
     if (!videoRef.current || !canvasRef.current) return;
+    
+    // Verify auth status before capture
+    const isAuthValid = await verifyAuthStatus();
+    if (!isAuthValid) {
+      toast({
+        title: "Authentication Error",
+        description: "Please sign out and sign in again to continue.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -106,11 +152,20 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
       // Create file from blob
       const file = new File([blob], "camera-photo.jpg", { type: "image/jpeg" });
       
-      // Call the capture callback
-      onCapture(file);
-      
-      // Close the camera dialog
-      onClose();
+      try {
+        // Call the capture callback
+        onCapture(file);
+        
+        // Close the camera dialog
+        onClose();
+      } catch (error) {
+        console.error("Error capturing photo:", error);
+        toast({
+          title: "Error",
+          description: "Failed to process the photo. Please try again.",
+          variant: "destructive"
+        });
+      }
     }, 'image/jpeg', 0.95);
   };
 
@@ -150,9 +205,18 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
           {/* Camera viewfinder */}
           <div className="bg-black flex-1 flex items-center justify-center overflow-hidden">
             {error ? (
+              <div className="text-white text-center p-6 flex flex-col items-center max-w-xs mx-auto">
+                <AlertCircle className="h-12 w-12 text-red-500 mb-3" />
+                <p className="mb-4 text-lg">{error}</p>
+                <div className="flex gap-4">
+                  <Button onClick={startCamera} variant="secondary">Retry Camera</Button>
+                  <Button onClick={onClose} variant="outline">Cancel</Button>
+                </div>
+              </div>
+            ) : isCheckingAuth ? (
               <div className="text-white text-center p-6">
-                <p className="mb-4">{error}</p>
-                <Button onClick={startCamera}>Retry</Button>
+                <p className="mb-4">Verifying authentication...</p>
+                <div className="animate-spin h-8 w-8 rounded-full border-4 border-t-transparent border-white mx-auto"></div>
               </div>
             ) : (
               <video
