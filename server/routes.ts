@@ -739,10 +739,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         favorites: Array.from(favoriteIds)
       };
       
+      // Create a JSON string from the export data
+      const jsonData = JSON.stringify(exportData);
+      
       // Set the filename for the download
       res.setHeader('Content-Disposition', 'attachment; filename="my-recipes.json"');
       res.setHeader('Content-Type', 'application/json');
-      res.json(exportData);
+      
+      // Send the raw JSON string instead of using res.json()
+      res.end(jsonData);
     } catch (error) {
       console.error("Error exporting recipes:", error);
       res.status(500).json({ message: "Failed to export recipes" });

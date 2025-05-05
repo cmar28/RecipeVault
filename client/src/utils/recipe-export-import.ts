@@ -19,11 +19,22 @@ export async function exportRecipes() {
       throw new Error(`Export failed: ${response.statusText}`);
     }
 
-    // Get the export data
-    const data = await response.json();
+    // Get the export data as text first
+    const rawText = await response.text();
+    
+    // Try to parse the text as JSON
+    let data;
+    try {
+      data = JSON.parse(rawText);
+      console.log('Successfully parsed export data:', data);
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError);
+      console.log('Raw response:', rawText);
+      throw new Error('Failed to parse server response as JSON');
+    }
 
-    // Create a Blob from the data
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    // Create a Blob directly from the raw text
+    const blob = new Blob([rawText], { type: 'application/json' });
     
     // Create a URL for the Blob
     const url = URL.createObjectURL(blob);
