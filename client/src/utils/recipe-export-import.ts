@@ -7,7 +7,7 @@ export async function exportRecipes() {
   try {
     console.log('Starting recipe export');
     // Fetch the export data from the server
-    const response = await fetch('/api/export-recipes', {
+    const response = await fetch('/api/recipes/data/export', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ export async function importRecipesFromFile(file: File): Promise<Recipe[]> {
     
     // Send the data to the server
     console.log('Starting recipe import');
-    const response = await fetch('/api/import-recipes', {
+    const response = await fetch('/api/recipes/data/import', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

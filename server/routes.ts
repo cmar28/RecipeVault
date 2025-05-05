@@ -711,7 +711,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export all recipes for a user
-  app.get("/api/export-recipes", async (req: Request, res: Response) => {
+  app.get("/api/recipes/data/export", async (req: Request, res: Response) => {
+    console.log("Starting export process for recipes");
     try {
       // Get user ID from Firebase Auth
       const userId = req.headers['x-firebase-uid'] as string;
@@ -739,15 +740,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         favorites: Array.from(favoriteIds)
       };
       
-      // Create a JSON string from the export data
-      const jsonData = JSON.stringify(exportData);
-      
-      // Set the filename for the download
-      res.setHeader('Content-Disposition', 'attachment; filename="my-recipes.json"');
-      res.setHeader('Content-Type', 'application/json');
-      
-      // Send the raw JSON string instead of using res.json()
-      res.end(jsonData);
+      try {
+        // Create a JSON string from the export data
+        const jsonData = JSON.stringify(exportData);
+        
+        // Double-check that the JSON is valid by parsing it
+        JSON.parse(jsonData);
+        
+        console.log("Export data successfully serialized to JSON");
+        
+        // Set the filename for the download
+        res.setHeader('Content-Disposition', 'attachment; filename="my-recipes.json"');
+        res.setHeader('Content-Type', 'application/json');
+        
+        // Send the raw JSON string instead of using res.json()
+        res.end(jsonData);
+      } catch (jsonError) {
+        console.error("Error serializing export data to JSON:", jsonError);
+        res.status(500).json({ message: "Failed to serialize recipe data" });
+      }
     } catch (error) {
       console.error("Error exporting recipes:", error);
       res.status(500).json({ message: "Failed to export recipes" });
@@ -755,7 +766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Import recipes for a user
-  app.post("/api/import-recipes", async (req: Request, res: Response) => {
+  app.post("/api/recipes/data/import", async (req: Request, res: Response) => {
     try {
       // Get user ID from Firebase Auth
       const userId = req.headers['x-firebase-uid'] as string;
