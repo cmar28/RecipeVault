@@ -372,13 +372,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cropResult = await cropRecipeImage(base64Image);
       
       // Use cropped image if available, otherwise use original
-      const imageDataToStore = cropResult.success && cropResult.cropped_image 
+      let rawImageData = cropResult.success && cropResult.cropped_image 
         ? cropResult.cropped_image 
         : base64Image;
       
       // Log crop results for debugging (exclude image data due to size)
       console.log(`Crop result success: ${cropResult.success}`);
       console.log(`Crop type: ${cropResult.cover_type || 'Not detected'}`);
+      
+      // Add data URL prefix if it doesn't exist
+      // Determine the image format (assuming JPEG if we can't detect it)
+      const imageFormat = req.file.mimetype || 'image/jpeg';
+      const imageDataToStore = rawImageData.startsWith('data:') 
+        ? rawImageData 
+        : `data:${imageFormat};base64,${rawImageData}`;
       
       // Convert the extracted recipe to our schema format
       const recipeData = {
@@ -389,7 +396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Pass arrays directly instead of joining as strings
         ingredients: extractionResult.recipe.ingredients,
         instructions: extractionResult.recipe.instructions,
-        imageData: imageDataToStore, // Store the cropped image as base64
+        imageData: imageDataToStore, // Store the cropped image as base64 with data URL prefix
         imageUrl: null, // We'll use imageData instead of URL
         createdBy: userId
       };
