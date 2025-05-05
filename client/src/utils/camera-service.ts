@@ -8,10 +8,27 @@
  */
 export async function capturePhotoFromCamera(): Promise<File> {
   return new Promise((resolve, reject) => {
+    // Create a container for the camera UI
+    const cameraContainer = document.createElement('div');
+    cameraContainer.style.position = 'fixed';
+    cameraContainer.style.top = '0';
+    cameraContainer.style.left = '0';
+    cameraContainer.style.width = '100%';
+    cameraContainer.style.height = '100%';
+    cameraContainer.style.backgroundColor = '#000';
+    cameraContainer.style.zIndex = '9999';
+    cameraContainer.style.display = 'flex';
+    cameraContainer.style.flexDirection = 'column';
+    cameraContainer.style.overflow = 'hidden';
+    
     // Create a video element for the camera stream
     const video = document.createElement('video');
     video.setAttribute('autoplay', 'true');
     video.setAttribute('playsinline', 'true'); // Required for iOS
+    video.style.width = '100%';
+    video.style.height = '100%';
+    video.style.objectFit = 'cover';
+    video.style.flex = '1';
     
     // Create a canvas element to capture the frame
     const canvas = document.createElement('canvas');
@@ -22,7 +39,174 @@ export async function capturePhotoFromCamera(): Promise<File> {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
+      if (document.body.contains(cameraContainer)) {
+        document.body.removeChild(cameraContainer);
+      }
       reject(error);
+    };
+    
+    // Track current camera mode
+    let currentFacingMode = 'environment';
+    
+    // Create header with title, switch camera and cancel buttons
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.padding = '15px';
+    header.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    
+    const title = document.createElement('div');
+    title.textContent = 'Take Recipe Photo';
+    title.style.color = 'white';
+    title.style.fontWeight = 'bold';
+    title.style.fontSize = '18px';
+    
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.style.display = 'flex';
+    buttonsContainer.style.gap = '10px';
+    
+    // Switch camera button
+    const switchCameraButton = document.createElement('button');
+    switchCameraButton.textContent = '🔄';
+    switchCameraButton.setAttribute('aria-label', 'Switch Camera');
+    switchCameraButton.style.padding = '8px 12px';
+    switchCameraButton.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+    switchCameraButton.style.color = 'white';
+    switchCameraButton.style.border = 'none';
+    switchCameraButton.style.borderRadius = '5px';
+    switchCameraButton.style.cursor = 'pointer';
+    switchCameraButton.style.fontSize = '16px';
+    
+    // Cancel button
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = 'Cancel';
+    cancelButton.style.padding = '8px 15px';
+    cancelButton.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+    cancelButton.style.color = 'white';
+    cancelButton.style.border = 'none';
+    cancelButton.style.borderRadius = '5px';
+    cancelButton.style.cursor = 'pointer';
+    
+    buttonsContainer.appendChild(switchCameraButton);
+    buttonsContainer.appendChild(cancelButton);
+    
+    header.appendChild(title);
+    header.appendChild(buttonsContainer);
+    
+    // Function to switch camera
+    const switchCamera = () => {
+      if (stream) {
+        // Stop current stream
+        stream.getTracks().forEach(track => track.stop());
+      }
+      
+      // Toggle facing mode
+      currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+      
+      // Get new stream with the other camera
+      navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: currentFacingMode,
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
+        audio: false
+      })
+      .then(mediaStream => {
+        stream = mediaStream;
+        video.srcObject = mediaStream;
+        
+        // When video is ready
+        video.onloadedmetadata = () => {
+          video.play().catch(cleanupAndReject);
+        };
+      })
+      .catch(error => {
+        cleanupAndReject(new Error(`Camera access denied: ${error.message}`));
+      });
+    };
+    
+    // Attach switch camera event
+    switchCameraButton.onclick = switchCamera;
+    
+    // Create footer with capture button
+    const footer = document.createElement('div');
+    footer.style.display = 'flex';
+    footer.style.justifyContent = 'center';
+    footer.style.padding = '20px';
+    footer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    
+    const captureButton = document.createElement('button');
+    captureButton.style.width = '60px';
+    captureButton.style.height = '60px';
+    captureButton.style.borderRadius = '50%';
+    captureButton.style.backgroundColor = 'white';
+    captureButton.style.border = '2px solid #444';
+    captureButton.style.cursor = 'pointer';
+    captureButton.style.position = 'relative';
+    
+    // Create inner circle for capture button
+    const innerCircle = document.createElement('div');
+    innerCircle.style.width = '52px';
+    innerCircle.style.height = '52px';
+    innerCircle.style.borderRadius = '50%';
+    innerCircle.style.backgroundColor = 'white';
+    innerCircle.style.border = '2px solid #fff';
+    innerCircle.style.position = 'absolute';
+    innerCircle.style.top = '2px';
+    innerCircle.style.left = '2px';
+    
+    captureButton.appendChild(innerCircle);
+    footer.appendChild(captureButton);
+    
+    // Construct UI
+    cameraContainer.appendChild(header);
+    cameraContainer.appendChild(video);
+    cameraContainer.appendChild(footer);
+    document.body.appendChild(cameraContainer);
+    
+    // Handle cancel button click
+    cancelButton.onclick = () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      document.body.removeChild(cameraContainer);
+      reject(new Error('Photo capture cancelled'));
+    };
+    
+    // Handle capture button click
+    captureButton.onclick = () => {
+      // Set canvas dimensions to match video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      // Draw the current video frame to canvas
+      const context = canvas.getContext('2d');
+      if (!context) {
+        cleanupAndReject(new Error('Failed to get canvas context'));
+        return;
+      }
+      
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // Stop the camera stream
+      stream!.getTracks().forEach(track => track.stop());
+      
+      // Remove camera UI
+      document.body.removeChild(cameraContainer);
+      
+      // Convert canvas to blob
+      canvas.toBlob(blob => {
+        if (!blob) {
+          reject(new Error('Failed to capture image'));
+          return;
+        }
+        
+        // Create a File object
+        const file = new File([blob], "camera-photo.jpg", { type: "image/jpeg" });
+        resolve(file);
+      }, 'image/jpeg', 0.95); // JPEG at 95% quality
     };
     
     // Get camera stream
@@ -38,91 +222,10 @@ export async function capturePhotoFromCamera(): Promise<File> {
       stream = mediaStream;
       video.srcObject = mediaStream;
       
-      // When video can play, setup capture canvas
+      // When video is ready
       video.onloadedmetadata = () => {
-        // Set canvas dimensions to match video
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        
-        // Listen for clikc event on video to take the picture
-        video.onclick = () => {
-          // Draw the current video frame to canvas
-          const context = canvas.getContext('2d');
-          if (!context) {
-            cleanupAndReject(new Error('Failed to get canvas context'));
-            return;
-          }
-          
-          context.drawImage(video, 0, 0, canvas.width, canvas.height);
-          
-          // Stop the camera stream
-          stream!.getTracks().forEach(track => track.stop());
-          
-          // Convert canvas to blob
-          canvas.toBlob(blob => {
-            if (!blob) {
-              reject(new Error('Failed to capture image'));
-              return;
-            }
-            
-            // Create a File object
-            const file = new File([blob], "camera-photo.jpg", { type: "image/jpeg" });
-            resolve(file);
-          }, 'image/jpeg', 0.95); // JPEG at 95% quality
-        };
-        
-        // Append video to body temporarily
-        video.style.position = 'fixed';
-        video.style.top = '0';
-        video.style.left = '0';
-        video.style.width = '100%';
-        video.style.height = '100%';
-        video.style.objectFit = 'cover';
-        video.style.zIndex = '9999';
-        document.body.appendChild(video);
-        
-        // Add instructions
-        const instructions = document.createElement('div');
-        instructions.textContent = 'Tap to capture photo';
-        instructions.style.position = 'fixed';
-        instructions.style.bottom = '20px';
-        instructions.style.left = '0';
-        instructions.style.width = '100%';
-        instructions.style.textAlign = 'center';
-        instructions.style.color = 'white';
-        instructions.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-        instructions.style.padding = '10px';
-        instructions.style.zIndex = '10000';
-        document.body.appendChild(instructions);
-        
-        // Add cancel button
-        const cancelButton = document.createElement('button');
-        cancelButton.textContent = 'Cancel';
-        cancelButton.style.position = 'fixed';
-        cancelButton.style.top = '20px';
-        cancelButton.style.right = '20px';
-        cancelButton.style.padding = '10px 20px';
-        cancelButton.style.backgroundColor = 'rgba(255, 255, 255, 0.7)';
-        cancelButton.style.border = 'none';
-        cancelButton.style.borderRadius = '5px';
-        cancelButton.style.zIndex = '10000';
-        cancelButton.onclick = () => {
-          // Stop the stream
-          if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-          }
-          
-          // Remove elements
-          document.body.removeChild(video);
-          document.body.removeChild(instructions);
-          document.body.removeChild(cancelButton);
-          
-          reject(new Error('Photo capture cancelled'));
-        };
-        document.body.appendChild(cancelButton);
+        video.play().catch(cleanupAndReject);
       };
-      
-      video.play().catch(cleanupAndReject);
     })
     .catch(error => {
       cleanupAndReject(new Error(`Camera access denied: ${error.message}`));
