@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Camera, X, RotateCcw } from "lucide-react";
@@ -118,11 +119,11 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="p-0 max-w-md w-full max-h-[80vh] overflow-hidden">
+      <DialogContent className="p-0 max-w-full w-full h-[100vh] max-h-[100vh] sm:max-w-md sm:max-h-[80vh] overflow-hidden fixed inset-0">
         <div className="flex flex-col h-full">
           {/* Camera header */}
           <div className="bg-black text-white p-3 flex justify-between items-center">
-            <h3 className="text-lg font-medium">Take Photo</h3>
+            <DialogTitle className="text-lg font-medium text-white">Take Photo</DialogTitle>
             <div className="flex gap-2">
               <Button 
                 variant="ghost" 
@@ -163,14 +164,20 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
           </div>
           
           {/* Camera footer */}
-          <div className="bg-black p-4 flex justify-center">
-            <Button
-              className="h-16 w-16 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center p-0"
-              disabled={!!error || !stream}
+          <div className="bg-black p-6 flex justify-center items-center fixed bottom-0 left-0 right-0">
+            <button
+              className="h-24 w-24 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center p-0 border-4 border-gray-800 shadow-lg"
+              disabled={!!error || !stream ? true : false}
               onClick={handleCapture}
+              aria-label="Take photo"
+              style={{ 
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+                zIndex: 10005
+              }}
             >
-              <div className="h-14 w-14 rounded-full border-2 border-gray-400" />
-            </Button>
+              <div className="h-18 w-18 rounded-full border-4 border-gray-400" />
+            </button>
           </div>
         </div>
       </DialogContent>
