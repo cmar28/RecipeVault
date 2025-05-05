@@ -46,11 +46,9 @@ def pil_image_to_base64(image, format="JPEG"):
 
 
 def crop_image(image, bbox):
-    """Crop image based on bounding box coordinates.
+    """Crop image based on normalized bounding box coordinates.
     
-    Supports multiple formats:
-    1. x, y, width, height: Traditional format with top-left coordinate and dimensions
-    2. ymin, xmin, ymax, xmax: Normalized (0-1000) coordinates for top-left and bottom-right
+    Only supports ymin, xmin, ymax, xmax format: Normalized (0-1000) coordinates for top-left and bottom-right
     """
     try:
         # Check which format the bbox is using
@@ -77,42 +75,11 @@ def crop_image(image, bbox):
                 
             # Crop the image using (left, top, right, bottom) format
             cropped_image = image.crop((xmin, ymin, xmax, ymax))
-            
-        elif all(k in bbox for k in ['x', 'y', 'width', 'height']):
-            # Legacy format with x, y, width, height
-            # Check if we're dealing with relative (0-1) or absolute coordinates
-            if all(0 <= v <= 1 for v in [
-                    bbox.get('x', 0),
-                    bbox.get('y', 0),
-                    bbox.get('width', 1),
-                    bbox.get('height', 1)
-            ]):
-                # Relative coordinates (0-1)
-                x = max(0, int(bbox.get('x', 0) * image.width))
-                y = max(0, int(bbox.get('y', 0) * image.height))
-                width = min(int(bbox.get('width', 1) * image.width), image.width - x)
-                height = min(int(bbox.get('height', 1) * image.height), image.height - y)
-            else:
-                # Absolute coordinates (pixel values)
-                x = max(0, int(bbox.get('x', 0)))
-                y = max(0, int(bbox.get('y', 0)))
-                width = min(int(bbox.get('width', image.width)), image.width - x)
-                height = min(int(bbox.get('height', image.height)), image.height - y)
-
-            # Ensure valid crop dimensions
-            if width <= 0 or height <= 0:
-                logger.warning(
-                    f"Invalid crop dimensions: width={width}, height={height}. Using original image."
-                )
-                return image
-
-            # Crop the image using (left, top, right, bottom) format
-            cropped_image = image.crop((x, y, x + width, y + height))
+            return cropped_image
         else:
             logger.warning(f"Unsupported bounding box format: {bbox}. Using original image.")
             return image
 
-        return cropped_image
     except Exception as e:
         logger.error(f"Error cropping image: {e}")
         return image  # Return original image if cropping fails

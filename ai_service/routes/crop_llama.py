@@ -47,7 +47,7 @@ def register_route(app):
                 }), 400
 
             # Prepare system message for Together.ai
-            system_message = "You are a helpful assistant specialized in image analysis. You will be given a recipe image. Your task is to identify the main dish or recipe title in the image and provide coordinates to crop it. You should return a JSON object with the cover_type (either 'dish_photo' or 'title_crop') and the bounding box coordinates (x, y, width, height) that define the region to crop."
+            system_message = "You are a helpful assistant specialized in image analysis. You will be given a recipe image. Your task is to identify the main dish or recipe title in the image and provide normalized coordinates to crop it. You should return a JSON object with the cover_type (either 'dish_photo' or 'title_crop') and the bounding box coordinates using normalized values from 0 to 1000."
             
             # Prepare the user prompt with detailed instructions
             user_message = """
@@ -55,13 +55,14 @@ def register_route(app):
             {
                 "cover_type": "dish_photo", // Use "dish_photo" if you find a picture of the prepared dish, or "title_crop" if you find the title of the recipe
                 "bbox": {
-                    "x": 100, // The x-coordinate of the top-left corner of the bounding box
-                    "y": 200, // The y-coordinate of the top-left corner of the bounding box
-                    "width": 300, // The width of the bounding box
-                    "height": 400 // The height of the bounding box
+                    "xmin": 100, // The x-coordinate of the top-left corner (value between 0-1000)
+                    "ymin": 200, // The y-coordinate of the top-left corner (value between 0-1000)
+                    "xmax": 400, // The x-coordinate of the bottom-right corner (value between 0-1000) 
+                    "ymax": 600  // The y-coordinate of the bottom-right corner (value between 0-1000)
                 }
             }
             
+            IMPORTANT: All bbox coordinates must be normalized values between 0 and 1000, where 0 represents the top/left edge and 1000 represents the bottom/right edge of the image.
             Remember to provide only the JSON object with no additional text.
             """
 
@@ -129,7 +130,7 @@ def register_route(app):
                         bbox = parsed_response.get("bbox", {})
                         
                         # Validate bbox structure
-                        if not all(key in bbox for key in ["x", "y", "width", "height"]):
+                        if not all(key in bbox for key in ["xmin", "ymin", "xmax", "ymax"]):
                             logger.warning(f"Invalid bbox structure: {bbox}")
                             raise ValueError("Invalid bounding box structure")
                         
