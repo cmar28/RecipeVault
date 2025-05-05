@@ -144,8 +144,7 @@ const Home = () => {
   const handleCameraCapture = (file: File) => {
     console.log("Photo captured successfully:", file.name, file.size);
     
-    // First close the camera
-    setIsCameraOpen(false);
+    // Camera is already closed by the camera component before this is called
     
     // Reset processing stages
     setProcessingStages([
@@ -155,11 +154,11 @@ const Home = () => {
       { id: 'saving', label: 'Saving recipe', status: 'pending' }
     ]);
     
-    // Then show processing modal and start upload
+    // Show processing modal after a short delay to ensure smooth transition
     setTimeout(() => {
       setIsProcessingImage(true);
       uploadMutation.mutate(file);
-    }, 300); // Small delay to ensure camera is fully closed before showing modal
+    }, 500); // Longer delay to ensure smooth transition, especially on mobile
   };
 
   const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {

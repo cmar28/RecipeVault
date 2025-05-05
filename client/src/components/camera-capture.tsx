@@ -222,7 +222,11 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                onClick={onClose} 
+                onClick={() => {
+                  // Make sure to stop the camera before closing
+                  stopCamera();
+                  onClose();
+                }} 
                 className="h-12 w-12 text-white"
               >
                 <X size={20} />
@@ -238,7 +242,15 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
                 <p className="mb-4 text-lg">{error}</p>
                 <div className="flex gap-4">
                   <Button onClick={startCamera} variant="secondary">Retry Camera</Button>
-                  <Button onClick={onClose} variant="outline">Cancel</Button>
+                  <Button 
+                    onClick={() => {
+                      stopCamera();
+                      onClose();
+                    }} 
+                    variant="outline"
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </div>
             ) : isCheckingAuth ? (
