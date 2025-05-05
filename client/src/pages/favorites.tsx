@@ -196,6 +196,13 @@ const Favorites = () => {
         onSelectOption={handlePhotoOptionSelected}
         isLoading={isProcessingImage}
       />
+      
+      {/* Camera Capture Component */}
+      <CameraCapture
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onCapture={handleCameraCapture}
+      />
     </div>
   );
 };
