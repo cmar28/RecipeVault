@@ -9,9 +9,9 @@ import RecipeCard from "@/components/recipe-card";
 import PhotoOptionsModal from "@/components/photo-options-modal";
 import RecipeProcessingModal, { ProcessingStage } from "@/components/recipe-processing-modal";
 import { ImportExportModal } from "@/components/import-export-modal";
+import CameraCapture from "@/components/camera-capture";
 import { Recipe } from "@shared/schema";
 import { uploadRecipeImage } from "@/utils/recipe-image-service";
-import { capturePhotoFromCamera } from "@/utils/camera-service";
 import { 
   RECIPE_PROCESSING_STAGE_EVENT,
   RECIPE_PROCESSING_FALLBACK_EVENT
@@ -124,53 +124,28 @@ const Home = () => {
     setSearchQuery(query);
   };
 
+  // State for camera component
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  
   const handlePhotoOptionSelected = (option: "camera" | "upload") => {
     console.log("Photo option selected:", option);
     
     if (option === "camera") {
-      // Set loading state while accessing camera
-      setIsProcessingImage(true);
-      
-      try {
-        // Check if mediaDevices is available
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("Camera API not supported in this browser");
-        }
-        
-        console.log("Starting camera capture...");
-        
-        // Request camera access and capture photo
-        capturePhotoFromCamera()
-          .then(file => {
-            console.log("Photo captured successfully:", file.name, file.size);
-            // Process the captured photo
-            uploadMutation.mutate(file);
-          })
-          .catch(error => {
-            // Handle any errors (camera access denied, user canceled, etc.)
-            console.error("Camera error:", error);
-            toast({
-              title: "Camera error",
-              description: error.message || "There was a problem accessing your camera",
-              variant: "destructive",
-              duration: 3000,
-            });
-            setIsProcessingImage(false);
-          });
-      } catch (error) {
-        console.error("Camera initialization error:", error);
-        toast({
-          title: "Camera not available",
-          description: "Your browser doesn't support camera access or permission was denied",
-          variant: "destructive",
-          duration: 3000,
-        });
-        setIsProcessingImage(false);
-      }
+      // Close photo options and open camera component
+      setIsPhotoModalOpen(false);
+      setIsCameraOpen(true);
     } else if (option === "upload") {
       // Trigger file input click
       fileInputRef.current?.click();
     }
+  };
+  
+  // Handle photo captured from camera component
+  const handleCameraCapture = (file: File) => {
+    console.log("Photo captured successfully:", file.name, file.size);
+    // Process the captured photo
+    setIsProcessingImage(true);
+    uploadMutation.mutate(file);
   };
 
   const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -410,6 +385,13 @@ const Home = () => {
       <ImportExportModal 
         isOpen={isImportExportModalOpen}
         onClose={() => setIsImportExportModalOpen(false)}
+      />
+      
+      {/* Camera Capture Component */}
+      <CameraCapture
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onCapture={handleCameraCapture}
       />
     </div>
   );
