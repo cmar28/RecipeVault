@@ -144,21 +144,38 @@ const Home = () => {
   const handleCameraCapture = (file: File) => {
     console.log("Photo captured successfully:", file.name, file.size);
     
-    // Camera is already closed by the camera component before this is called
-    
-    // Reset processing stages
-    setProcessingStages([
-      { id: 'uploading', label: 'Uploading image', status: 'pending' },
-      { id: 'verifying', label: 'Verifying recipe image', status: 'pending' },
-      { id: 'extracting', label: 'Extracting recipe details', status: 'pending' },
-      { id: 'saving', label: 'Saving recipe', status: 'pending' }
-    ]);
-    
-    // Show processing modal after a short delay to ensure smooth transition
-    setTimeout(() => {
+    try {
+      // Ensure camera is closed
+      setIsCameraOpen(false);
+      
+      // Reset processing stages first
+      setProcessingStages([
+        { id: 'uploading', label: 'Uploading image', status: 'pending' },
+        { id: 'verifying', label: 'Verifying recipe image', status: 'pending' },
+        { id: 'extracting', label: 'Extracting recipe details', status: 'pending' },
+        { id: 'saving', label: 'Saving recipe', status: 'pending' }
+      ]);
+      
+      // Show processing modal and start the upload
       setIsProcessingImage(true);
-      uploadMutation.mutate(file);
-    }, 500); // Longer delay to ensure smooth transition, especially on mobile
+      
+      // Short timeout to ensure UI is updated
+      setTimeout(() => {
+        // Start the upload process
+        uploadMutation.mutate(file);
+      }, 100);
+    } catch (err) {
+      console.error("Error handling camera capture:", err);
+      toast({
+        title: "Error Processing Photo",
+        description: "Failed to process the captured photo. Please try again.",
+        variant: "destructive"
+      });
+      
+      // Close the camera UI and reset state
+      setIsCameraOpen(false);
+      setIsProcessingImage(false);
+    }
   };
 
   const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {

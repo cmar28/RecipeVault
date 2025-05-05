@@ -142,63 +142,71 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
   };
 
   const handleCapture = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
-    
-    console.log("Capturing photo...");
-    
-    // Verify auth status before capture
-    const isAuthValid = await verifyAuthStatus();
-    if (!isAuthValid) {
-      toast({
-        title: "Authentication Error",
-        description: "Please sign out and sign in again to continue.",
-        variant: "destructive"
-      });
+    if (!videoRef.current || !canvasRef.current) {
+      console.error("Video or canvas refs not available");
       return;
     }
+    
+    console.log("Capturing photo...");
     
     try {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       
-      // Set canvas size to match video
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      // Set canvas size to match video dimensions
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
       
-      // Draw current video frame to canvas
+      console.log(`Canvas size set to ${canvas.width}x${canvas.height}`);
+      
+      // Get 2D context for drawing
       const context = canvas.getContext('2d');
-      if (!context) return;
+      if (!context) {
+        console.error("Could not get canvas context");
+        return;
+      }
       
-      // Draw the current frame to the canvas
+      // Draw the current video frame to canvas
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      console.log("Image drawn to canvas");
       
-      // Save the image data before stopping the camera
-      canvas.toBlob(blob => {
-        if (!blob) {
-          console.error("Failed to create blob from canvas");
-          return;
-        }
-        
-        // Create file from blob
-        const file = new File([blob], "camera-photo.jpg", { type: "image/jpeg" });
-        
-        // Stop the camera
-        stopCamera();
-        
-        // Hide the camera UI first
-        if (containerRef.current) {
-          containerRef.current.style.display = 'none';
-        }
-        
-        // Close the camera component
-        closeCamera();
-        
-        // Wait until UI has time to update
-        setTimeout(() => {
+      // Convert canvas to a blob (image file)
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            console.error("Failed to create blob from canvas");
+            toast({
+              title: "Error",
+              description: "Failed to process the photo. Please try again.",
+              variant: "destructive"
+            });
+            return;
+          }
+          
+          console.log(`Blob created: ${blob.size} bytes`);
+          
+          // Create file from blob
+          const file = new File([blob], "camera-photo.jpg", { type: "image/jpeg" });
+          console.log("File created from blob");
+          
+          // First hide the container
+          if (containerRef.current) {
+            containerRef.current.style.visibility = 'hidden';
+          }
+          
+          // Stop camera immediately to free resources
+          stopCamera();
+          
+          // Close the camera UI
+          onClose();
+          
           // Process the captured image
-          onCapture(file);
-        }, 500);
-      }, 'image/jpeg', 0.95);
+          console.log("Processing captured image");
+          setTimeout(() => onCapture(file), 100);
+        },
+        'image/jpeg',
+        0.9
+      );
     } catch (error) {
       console.error("Error capturing photo:", error);
       toast({
