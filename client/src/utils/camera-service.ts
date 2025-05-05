@@ -55,6 +55,7 @@ export async function capturePhotoFromCamera(): Promise<File> {
     header.style.alignItems = 'center';
     header.style.padding = '15px';
     header.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    header.style.zIndex = '10001'; // Ensure it's above video
     
     const title = document.createElement('div');
     title.textContent = 'Take Recipe Photo';
@@ -77,6 +78,7 @@ export async function capturePhotoFromCamera(): Promise<File> {
     switchCameraButton.style.borderRadius = '5px';
     switchCameraButton.style.cursor = 'pointer';
     switchCameraButton.style.fontSize = '16px';
+    switchCameraButton.style.zIndex = '10001'; // Ensure it's above video
     
     // Cancel button
     const cancelButton = document.createElement('button');
@@ -87,12 +89,17 @@ export async function capturePhotoFromCamera(): Promise<File> {
     cancelButton.style.border = 'none';
     cancelButton.style.borderRadius = '5px';
     cancelButton.style.cursor = 'pointer';
+    cancelButton.style.zIndex = '10001'; // Ensure it's above video
     
     buttonsContainer.appendChild(switchCameraButton);
     buttonsContainer.appendChild(cancelButton);
     
     header.appendChild(title);
     header.appendChild(buttonsContainer);
+    
+    // Improve tap area for buttons by adding pointer-events
+    switchCameraButton.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+    cancelButton.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
     
     // Function to switch camera
     const switchCamera = () => {
@@ -136,15 +143,18 @@ export async function capturePhotoFromCamera(): Promise<File> {
     footer.style.justifyContent = 'center';
     footer.style.padding = '20px';
     footer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    footer.style.zIndex = '10001'; // Ensure it's above video
     
     const captureButton = document.createElement('button');
-    captureButton.style.width = '60px';
-    captureButton.style.height = '60px';
+    captureButton.style.width = '70px';
+    captureButton.style.height = '70px';
     captureButton.style.borderRadius = '50%';
     captureButton.style.backgroundColor = 'white';
     captureButton.style.border = '2px solid #444';
     captureButton.style.cursor = 'pointer';
     captureButton.style.position = 'relative';
+    captureButton.style.zIndex = '10002'; // Ensure it's above header and footer
+    captureButton.style.touchAction = 'manipulation'; // Improve touch response
     
     // Create inner circle for capture button
     const innerCircle = document.createElement('div');
@@ -159,6 +169,9 @@ export async function capturePhotoFromCamera(): Promise<File> {
     
     captureButton.appendChild(innerCircle);
     footer.appendChild(captureButton);
+    
+    // Improve tap area for capture button
+    captureButton.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
     
     // Construct UI
     cameraContainer.appendChild(header);

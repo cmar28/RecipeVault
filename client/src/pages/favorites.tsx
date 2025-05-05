@@ -34,36 +34,58 @@ const Favorites = () => {
   };
   
   const handlePhotoOptionSelected = (option: "camera" | "upload") => {
+    console.log("Photo option selected (Favorites):", option);
+    
     if (option === "camera") {
       // Set loading state while accessing camera
       setIsProcessingImage(true);
       
-      // Request camera access and capture photo
-      capturePhotoFromCamera()
-        .then(file => {
-          // Navigate to home page where the upload mutation functionality exists
-          setLocation("/");
-          // Reset loading state since we'll navigate away
-          setIsProcessingImage(false);
-          
-          // Trigger the processing via an event after navigation
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('process-recipe-image', { 
-              detail: { filePath: URL.createObjectURL(file) }
-            }));
-          }, 300);
-        })
-        .catch(error => {
-          // Handle any errors (camera access denied, user canceled, etc.)
-          console.error("Camera error:", error);
-          toast({
-            title: "Camera error",
-            description: error.message || "There was a problem accessing your camera",
-            variant: "destructive",
-            duration: 3000,
+      try {
+        // Check if mediaDevices is available
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Camera API not supported in this browser");
+        }
+        
+        console.log("Starting camera capture from Favorites...");
+        
+        // Request camera access and capture photo
+        capturePhotoFromCamera()
+          .then(file => {
+            console.log("Photo captured successfully:", file.name, file.size);
+            
+            // Navigate to home page where the upload mutation functionality exists
+            setLocation("/");
+            // Reset loading state since we'll navigate away
+            setIsProcessingImage(false);
+            
+            // Trigger the processing via an event after navigation
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('process-recipe-image', { 
+                detail: { filePath: URL.createObjectURL(file) }
+              }));
+            }, 300);
+          })
+          .catch(error => {
+            // Handle any errors (camera access denied, user canceled, etc.)
+            console.error("Camera error:", error);
+            toast({
+              title: "Camera error",
+              description: error.message || "There was a problem accessing your camera",
+              variant: "destructive",
+              duration: 3000,
+            });
+            setIsProcessingImage(false);
           });
-          setIsProcessingImage(false);
+      } catch (error) {
+        console.error("Camera initialization error:", error);
+        toast({
+          title: "Camera not available",
+          description: "Your browser doesn't support camera access or permission was denied",
+          variant: "destructive",
+          duration: 3000,
         });
+        setIsProcessingImage(false);
+      }
     } else if (option === "upload") {
       // Trigger file input click
       fileInputRef.current?.click();
