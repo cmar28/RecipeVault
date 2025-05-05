@@ -11,7 +11,7 @@ import base64
 from io import BytesIO
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import is_valid_base64_image, base64_to_pil_image, pil_image_to_base64, crop_image
-from config import together_client, TOGETHER_MODEL, AI_PROVIDER
+from config import together_client, LLAMA_CROP_MODEL, AI_PROVIDER
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -107,7 +107,7 @@ def register_route(app):
 
                 # Make API call
                 response = together_client.chat.completions.create(
-                    model=TOGETHER_MODEL,
+                    model=LLAMA_CROP_MODEL,
                     messages=messages,
                     temperature=0.2,  # Lower temperature for more deterministic outputs
                     max_tokens=1000,

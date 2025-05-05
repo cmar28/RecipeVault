@@ -1,0 +1,73 @@
+            # Prepare system message for OpenAI
+            system_message = "You are responsible for extracting the cover image of the recipe included in the image attached. If a section of the image contains an image of the finished dish crop the image to identify the picture of the dish. Otherwise crop the image to extract the title of the recipe. Return the cropped image."
+
+            # Call OpenAI API for bounding box detection
+            try:
+                logger.info("Calling OpenAI to detect bounding box")
+
+                # Use the chat.completions.create API with function calling
+                response = openai_client.chat.completions.create(
+                    model=OPENAI_CROP_MODEL,
+                    messages=[{
+                        "role": "system",
+                        "content": system_message
+                    }, {
+                        "role":
+                        "user",
+                        "content": [{
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_data}"
+                            }
+                        }]
+                    }],
+                    functions=[{
+                        "name": "crop_image",
+                        "description":
+                        "Crop an image based on the bounding box coordinates provided in the format [ymin, xmin, ymax, xmax]. Note the input coordinates must be normalized to a scale of 0 to 1000",
+                        "parameters": {
+                            "type": "object",
+                            "required": ["cover_type", "bbox"],
+                            "properties": {
+                                "cover_type": {
+                                    "type": "string",
+                                    "enum": ["dish_photo", "title_crop"],
+                                    "description":
+                                    "Type of cover image to select"
+                                },
+                                "bbox": {
+                                    "type": "object",
+                                    "required":
+                                    ["ymin", "xmin", "ymax", "xmax"],
+                                    "properties": {
+                                        "ymin": {
+                                            "type":
+                                            "number",
+                                            "description":
+                                            "y min coordinate of the bounding box (value should be between 0 and 1000)"
+                                        },
+                                        "xmin": {
+                                            "type":
+                                            "number",
+                                            "description":
+                                            "x min coordinate of the bounding box (value should be between 0 and 1000)"
+                                        },
+                                        "ymax": {
+                                            "type":
+                                            "number",
+                                            "description":
+                                            "y max coordinate of the bounding box (value should be between 0 and 1000)"
+                                        },
+                                        "xmax": {
+                                            "type":
+                                            "number",
+                                            "description":
+                                            "x max coordinate of the bounding box (value should be between 0 and 1000)"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }],
+                    function_call={"name": "crop_image"},
+                )

@@ -15,14 +15,14 @@ logger = logging.getLogger(__name__)
 
 # Model provider configuration - change this value manually to switch providers
 # Options: "openai" or "together"
-AI_PROVIDER = "together"
+AI_PROVIDER = "openai"
+#AI_PROVIDER = "together"
+
+OPENAI_CROP_MODEL = "gpt-4o"  # Updated to the latest model
+LLAMA_CROP_MODEL = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
 
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-# Model configurations
-OPENAI_MODEL = "gpt-4o"  # Updated to the latest model
-TOGETHER_MODEL = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
 
 # Initialize Together client only if we're using Together provider
 together_client = None
@@ -30,14 +30,16 @@ if AI_PROVIDER == "together":
     try:
         from together import Together
         together_client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
-        
+
         # Check if Together API key is set
         if not os.getenv("TOGETHER_API_KEY"):
             logger.warning(
                 "TOGETHER_API_KEY environment variable is not set. The Together.ai services will not work properly."
             )
     except ImportError:
-        logger.warning("Failed to import Together module. Together AI services will not be available.")
+        logger.warning(
+            "Failed to import Together module. Together AI services will not be available."
+        )
         # Fall back to OpenAI if Together import fails
         AI_PROVIDER = "openai"
 

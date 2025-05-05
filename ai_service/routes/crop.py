@@ -7,14 +7,17 @@ import logging
 from flask import request, jsonify
 import sys
 import os
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import is_valid_base64_image, base64_to_pil_image, pil_image_to_base64, crop_image
-from config import openai_client
+from config import openai_client, OPENAI_CROP_MODEL
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
 def register_route(app):
+
     @app.route('/crop', methods=['POST'])
     def crop_recipe_image():
         """Identify and crop the recipe image to focus on the dish or title."""
@@ -53,7 +56,7 @@ def register_route(app):
 
                 # Use the chat.completions.create API with function calling
                 response = openai_client.chat.completions.create(
-                    model="gpt-4.1-nano",
+                    model=OPENAI_CROP_MODEL,
                     messages=[{
                         "role": "system",
                         "content": system_message
@@ -67,64 +70,73 @@ def register_route(app):
                             }
                         }]
                     }],
-                    functions=[{
-                        "name": "crop_image",
-                        "description":
-                        "Crop an image based on the bounding box provided as an input",
-                        "parameters": {
-                            "type": "object",
-                            "required": ["cover_type", "bbox"],
-                            "properties": {
-                                "cover_type": {
-                                    "type": "string",
-                                    "enum": ["dish_photo", "title_crop"],
-                                    "description": "Type of cover image to select"
-                                },
-                                "bbox": {
-                                    "type": "object",
-                                    "required": ["x", "y", "width", "height"],
-                                    "properties": {
-                                        "x": {
-                                            "type":
-                                            "number",
-                                            "description":
-                                            "X coordinate of the bounding box"
-                                        },
-                                        "y": {
-                                            "type":
-                                            "number",
-                                            "description":
-                                            "Y coordinate of the bounding box"
-                                        },
-                                        "width": {
-                                            "type": "number",
-                                            "description":
-                                            "Width of the bounding box"
-                                        },
-                                        "height": {
-                                            "type": "number",
-                                            "description":
-                                            "Height of the bounding box"
+                    tools=[{
+                        "type": "function",
+                        "function": {
+                            "name": "crop_image",
+                            "description":
+                            "Crop an image based on the bounding box coordinates provided in the format [ymin, xmin, ymax, xmax]. Note the input coordinates must be normalized to a scale of 0 to 1000",
+                            "parameters": {
+                                "type": "object",
+                                "required": ["cover_type", "bbox"],
+                                "properties": {
+                                    "cover_type": {
+                                        "type": "string",
+                                        "enum": ["dish_photo", "title_crop"],
+                                        "description":
+                                        "Type of cover image to select"
+                                    },
+                                    "bbox": {
+                                        "type": "object",
+                                        "required":
+                                        ["ymin", "xmin", "ymax", "xmax"],
+                                        "properties": {
+                                            "ymin": {
+                                                "type":
+                                                "number",
+                                                "description":
+                                                "y min coordinate of the bounding box (value should be between 0 and 1000)"
+                                            },
+                                            "xmin": {
+                                                "type":
+                                                "number",
+                                                "description":
+                                                "x min coordinate of the bounding box (value should be between 0 and 1000)"
+                                            },
+                                            "ymax": {
+                                                "type":
+                                                "number",
+                                                "description":
+                                                "y max coordinate of the bounding box (value should be between 0 and 1000)"
+                                            },
+                                            "xmax": {
+                                                "type":
+                                                "number",
+                                                "description":
+                                                "x max coordinate of the bounding box (value should be between 0 and 1000)"
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }],
-                    function_call={"name": "crop_image"},
+                    tool_choice={"type": "function", "function": {"name": "crop_image"}},
                 )
 
-                # Check if we have a valid function call response
-                if (response.choices and response.choices[0].message
-                        and hasattr(response.choices[0].message, 'function_call')):
-
-                    function_call = response.choices[0].message.function_call
-                    if function_call.name == "crop_image":
+                # Check if we have a valid tool call response
+                if (response.choices and response.choices[0].message and 
+                    hasattr(response.choices[0].message, 'tool_calls') and 
+                    response.choices[0].message.tool_calls):
+                    
+                    tool_call = response.choices[0].message.tool_calls[0]
+                    if tool_call.function.name == "crop_image":
                         # Parse function arguments from JSON string
                         try:
                             # Parse the function arguments
-                            tool_input = json.loads(function_call.arguments)
-                            cover_type = tool_input.get('cover_type', 'title_crop')
+                            tool_input = json.loads(tool_call.function.arguments)
+                            cover_type = tool_input.get(
+                                'cover_type', 'title_crop')
                             bbox = tool_input.get('bbox', {})
 
                             logger.info(f"Detected bounding box: {bbox}")
@@ -151,7 +163,8 @@ def register_route(app):
                             })
                         except Exception as json_error:
                             logger.error(
-                                f"Error parsing function arguments: {json_error}")
+                                f"Error parsing function arguments: {json_error}"
+                            )
                             # Fall back to returning the original image
                             return jsonify({
                                 "success":
@@ -165,7 +178,7 @@ def register_route(app):
                             })
                     else:
                         logger.warning(
-                            f"Unexpected function call: {function_call.name}")
+                            f"Unexpected function call: {tool_call.function.name}")
                         # Fall back to returning the original image
                         return jsonify({
                             "success":
