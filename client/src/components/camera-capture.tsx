@@ -3,6 +3,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Camera, X, RotateCcw } from "lucide-react";
@@ -119,17 +120,19 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="p-0 w-screen h-screen sm:max-w-md sm:h-auto sm:max-h-[80vh] overflow-hidden top-0 left-0 translate-x-0 translate-y-0 rounded-none sm:rounded-lg">
-        <div className="flex flex-col h-full relative">
-          {/* Camera header */}
-          <div className="bg-black text-white p-3 flex justify-between items-center z-20">
-            <DialogTitle className="text-lg font-medium text-white">Take Photo</DialogTitle>
+      <DialogContent className="p-0 w-full h-[100dvh] sm:max-w-md sm:h-auto sm:max-h-[80vh] overflow-hidden top-0 left-0 translate-x-0 translate-y-0 rounded-none sm:rounded-lg">
+        <DialogTitle className="sr-only">Take Photo</DialogTitle>
+        <DialogDescription className="sr-only">Use your camera to take a photo of a recipe</DialogDescription>
+        <div className="flex flex-col h-full" style={{ maxHeight: '100dvh' }}>
+          {/* Camera header - Fixed at top */}
+          <div className="bg-black text-white p-3 flex justify-between items-center sticky top-0 z-20">
+            <h2 className="text-lg font-medium text-white">Take Photo</h2>
             <div className="flex gap-2">
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={switchCamera} 
-                className="h-10 w-10 text-white"
+                className="h-12 w-12 text-white" 
               >
                 <RotateCcw size={20} />
               </Button>
@@ -137,7 +140,7 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
                 variant="ghost" 
                 size="icon" 
                 onClick={onClose} 
-                className="h-10 w-10 text-white"
+                className="h-12 w-12 text-white"
               >
                 <X size={20} />
               </Button>
@@ -163,10 +166,11 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
             <canvas ref={canvasRef} className="hidden" />
           </div>
           
-          {/* Camera footer */}
-          <div className="bg-black p-6 flex justify-center items-center z-20">
+          {/* Camera footer - Fixed at bottom of viewport */}
+          <div className="bg-black p-4 flex justify-center items-center sticky bottom-0 z-20 w-full"
+               style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}>
             <button
-              className="h-24 w-24 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center p-0 border-4 border-gray-800 shadow-lg"
+              className="h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center border-4 border-gray-800 shadow-lg animate-pulse"
               disabled={!!error || !stream ? true : false}
               onClick={handleCapture}
               aria-label="Take photo"
@@ -175,7 +179,7 @@ const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
                 WebkitTapHighlightColor: 'transparent'
               }}
             >
-              <div className="h-16 w-16 rounded-full border-4 border-gray-400" />
+              <div className="h-14 w-14 rounded-full border-4 border-red-400" />
             </button>
           </div>
         </div>
