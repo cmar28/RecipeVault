@@ -76,18 +76,27 @@ export async function importRecipesFromFile(file: File): Promise<Recipe[]> {
     }
     
     // Send the data to the server
-    const response = await apiRequest<{message: string, recipes: Recipe[]}>('/api/recipes/import', {
+    const response = await fetch('/api/recipes/import', {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(importData)
     });
+    
+    if (!response.ok) {
+      throw new Error(`Import failed: ${response.statusText}`);
+    }
+    
+    const result = await response.json();
     
     // Show success message
     toast({
       title: "Import successful",
-      description: `Successfully imported ${response.recipes.length} recipes`,
+      description: `Successfully imported ${result.recipes.length} recipes`,
     });
     
-    return response.recipes;
+    return result.recipes;
   } catch (error) {
     console.error('Error importing recipes:', error);
     toast({
