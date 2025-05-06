@@ -157,7 +157,7 @@ const firebaseAuthMiddleware = async (req: Request, res: Response, next: NextFun
     const publicPaths = [
       // Add any public endpoints that don't require authentication
       '/api/health',
-      '/api/recipes', // Allow public recipe browsing
+      // Note: /api/recipes is NOT in public paths anymore so authentication can be processed
     ];
     
     // Check if the path is public
@@ -510,7 +510,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get user ID from Firebase Auth data if available
       const userId = (req.headers['x-firebase-uid'] as string) || undefined;
+      
+      // Log for debugging
+      if (userId) {
+        console.log(`Fetching recipes for authenticated user: ${userId}`);
+      } else {
+        console.log("Fetching recipes for unauthenticated user (public recipes only)");
+      }
+      
+      // Get recipes based on auth status
       const recipes = await storage.getRecipes(userId);
+      console.log(`Found ${recipes.length} recipes to return`);
+      
       res.json(recipes);
     } catch (error) {
       console.error("Error fetching recipes:", error);
