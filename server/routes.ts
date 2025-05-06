@@ -153,65 +153,77 @@ async function cropRecipeImage(base64Image: string): Promise<{
 // Middleware to verify and extract Firebase token
 const firebaseAuthMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Public endpoints that don't require authentication
+    const publicPaths = [
+      // Add any public endpoints that don't require authentication
+      '/api/health',
+      '/api/recipes', // Allow public recipe browsing
+    ];
+    
+    // Check if the path is public
+    const isPublicPath = publicPaths.some(path => {
+      // Direct match or path starts with the public path
+      return req.path === path || (path.endsWith('*') && req.path.startsWith(path.slice(0, -1)));
+    });
+    
+    // Skip auth check for public routes or OPTIONS requests (CORS preflight)
+    if (isPublicPath || req.method === 'OPTIONS') {
+      return next();
+    }
+    
     // Extract the Firebase ID token from the Authorization header
     const authHeader = req.headers.authorization;
     
-    // Detailed debugging for recipe image upload requests
-    if (req.path === '/api/recipes/from-image' && req.method === 'POST') {
-      console.log('Recipe image upload auth middleware processing');
-      console.log('Auth header exists:', !!authHeader);
-      if (authHeader) {
-        console.log('Auth header starts with Bearer:', authHeader.startsWith('Bearer '));
-      }
+    // Production log level - minimal but informative
+    const isImportantRoute = req.path === '/api/recipes/from-image' && req.method === 'POST';
+    
+    if (isImportantRoute) {
+      console.log(`Auth middleware processing ${req.method} ${req.path}`);
     }
     
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const idToken = authHeader.split(' ')[1];
-      
-      try {
-        // Verify the Firebase ID token
-        const decodedToken = await verifyFirebaseToken(idToken);
-        
-        if (decodedToken) {
-          // Set the user ID as a request header for easy access in routes
-          // Make sure we're using the uid property from the decoded token
-          const userId = decodedToken.uid || decodedToken.user_id;
-          req.headers['x-firebase-uid'] = userId;
-          
-          // For debugging
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`Authenticated request from user: ${userId}`);
-            
-            // More detailed debug for image upload
-            if (req.path === '/api/recipes/from-image' && req.method === 'POST') {
-              console.log('Successfully authenticated image upload request');
-            }
-          }
-        } else {
-          console.warn('Invalid Firebase token provided');
-          // More detailed debug for image upload
-          if (req.path === '/api/recipes/from-image' && req.method === 'POST') {
-            console.log('Invalid token for image upload request');
-          }
-          // Don't set the user ID if token is invalid
-          // This will cause protected routes to return 401
-        }
-      } catch (tokenError) {
-        console.error('Error verifying token:', tokenError);
-        // More detailed debug for image upload
-        if (req.path === '/api/recipes/from-image' && req.method === 'POST') {
-          console.log('Token verification error for image upload');
-        }
-        // Don't set user ID on verification error
+    // Missing auth header - unauthorized
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      if (isImportantRoute) {
+        console.warn(`Missing or invalid Authorization header for ${req.method} ${req.path}`);
       }
-    } else if (req.path === '/api/recipes/from-image' && req.method === 'POST') {
-      console.log('No Bearer token found for image upload request');
+      
+      // Don't set user ID, let the route handler decide if this is a problem
+      return next();
+    }
+    
+    // Extract and verify the token
+    const idToken = authHeader.split(' ')[1];
+    
+    try {
+      // Verify the Firebase ID token
+      const decodedToken = await verifyFirebaseToken(idToken);
+      
+      if (decodedToken) {
+        // Set the user ID as a request header for easy access in routes
+        const userId = decodedToken.uid;
+        req.headers['x-firebase-uid'] = userId;
+        
+        // For important routes, log success in both dev and prod
+        if (isImportantRoute) {
+          console.log(`Authenticated user ${userId} for ${req.method} ${req.path}`);
+        } else if (process.env.NODE_ENV === 'development') {
+          console.log(`Authenticated user ${userId} for ${req.method} ${req.path}`);
+        }
+      } else {
+        // Log invalid token attempts in both dev and prod
+        console.warn(`Invalid Firebase token for ${req.method} ${req.path}`);
+      }
+    } catch (tokenError) {
+      // Log token verification errors
+      console.error(`Token verification error for ${req.method} ${req.path}:`, tokenError);
     }
     
     next();
   } catch (error) {
+    // Unexpected errors in the middleware itself
     console.error('Error in Firebase auth middleware:', error);
-    // Continue without authentication in case of error
+    
+    // For production, don't expose error details to client
     next();
   }
 };
