@@ -17,6 +17,7 @@ import {
   RECIPE_PROCESSING_FALLBACK_EVENT
 } from "@/utils/websocket-service";
 import { useToast } from "@/hooks/use-toast";
+import { auth } from "@/lib/firebase";
 
 const Home = () => {
   const [, setLocation] = useLocation();
@@ -36,17 +37,40 @@ const Home = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Fetch all recipes
-  const { data: recipes, isLoading, error } = useQuery<Recipe[]>({ 
-    queryKey: ['/api/recipes']
+  // Fetch all recipes with retry for auth issues
+  const { data: recipes, isLoading, error, refetch: refetchRecipes } = useQuery<Recipe[]>({ 
+    queryKey: ['/api/recipes'],
+    retry: 3, // Retry 3 times if it fails (helps with timing of auth)
+    retryDelay: 1000 // 1 second between retries
   });
   
   // Fetch favorite recipes separately to ensure they're always up-to-date
-  const { data: favoriteRecipes = [] } = useQuery<Recipe[]>({
+  const { 
+    data: favoriteRecipes = [], 
+    refetch: refetchFavorites
+  } = useQuery<Recipe[]>({
     queryKey: ['/api/favorites'],
     // Don't show loading state or error for favorites
-    staleTime: 10000 // 10 seconds
+    staleTime: 10000, // 10 seconds
+    retry: 3, // Retry 3 times if it fails
+    retryDelay: 1000 // 1 second between retries
   });
+  
+  // Effect to refetch recipes when auth state changes
+  useEffect(() => {
+    // Subscribe to auth state changes
+    const unsubscribe = auth.onAuthStateChanged((user: any) => {
+      if (user) {
+        console.log("User authenticated, refreshing recipe data");
+        // Force refresh both queries when the user is authenticated
+        refetchRecipes();
+        refetchFavorites();
+      }
+    });
+    
+    // Clean up the subscription
+    return () => unsubscribe();
+  }, [refetchRecipes, refetchFavorites]);
   
   // Setup mutation for recipe image upload
   const uploadMutation = useMutation({
@@ -108,10 +132,11 @@ const Home = () => {
     }
   });
   
-  const filteredRecipes = recipes?.filter(recipe => 
+  // Filter recipes by search query if recipes exist
+  const filteredRecipes = recipes ? recipes.filter((recipe: Recipe) => 
     recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     recipe.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ) : [];
 
   // Handler for the bottom center button (camera)
   const handleAddNewRecipe = () => {

@@ -1,5 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { auth } from "./firebase";
+import { auth, getCurrentUserToken } from "./firebase";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -8,16 +8,20 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-// Helper function to get the current user's ID token
+// Helper function to get auth headers with the current user's ID token
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = {};
   
   try {
-    const currentUser = auth.currentUser;
-    if (currentUser) {
-      // Get a proper Firebase JWT token
-      const token = await currentUser.getIdToken();
+    // Use the more robust getCurrentUserToken implementation
+    // This includes retry logic and waiting for auth state
+    const token = await getCurrentUserToken(true);
+    
+    if (token) {
       headers["Authorization"] = `Bearer ${token}`;
+      console.log("Successfully added auth token to request");
+    } else {
+      console.warn("No auth token available for request");
     }
   } catch (error) {
     console.error("Error getting auth token:", error);
