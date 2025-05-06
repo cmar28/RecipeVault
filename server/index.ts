@@ -3,6 +3,14 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startAIService } from "./startupServices";
 
+// Ensure Firebase variables are accessible from Vite environment variables in production
+// This is necessary because VITE_ prefixed variables are normally only available to the client
+if (!process.env.VITE_FIREBASE_PROJECT_ID && process.env.FIREBASE_PROJECT_ID) {
+  process.env.VITE_FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
+} else if (!process.env.VITE_FIREBASE_PROJECT_ID) {
+  console.warn('Warning: VITE_FIREBASE_PROJECT_ID or FIREBASE_PROJECT_ID environment variable is required for Firebase authentication');
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

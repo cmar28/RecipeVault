@@ -7,23 +7,13 @@ import { DecodedIdToken } from 'firebase-admin/auth';
 let firebaseApp;
 
 try {
-  // Check if the environment is development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Using Firebase Admin in development mode');
-    
-    // In development, initialize with limited credentials
-    // This allows us to test without requiring service account credentials
-    firebaseApp = admin.initializeApp({
-      projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-    });
-  } else {
-    // In production, initialize properly
-    console.log('Initializing Firebase Admin SDK for production');
-    
-    // When deployed to Replit, the app uses the FIREBASE_CONFIG env variable
-    // or automatically detects Google Cloud credentials
-    firebaseApp = admin.initializeApp();
-  }
+  // Use the same projectId in both development and production
+  // This ensures token validation works correctly in all environments
+  console.log(`Initializing Firebase Admin SDK with project: ${process.env.VITE_FIREBASE_PROJECT_ID}`);
+  
+  firebaseApp = admin.initializeApp({
+    projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  });
 } catch (error) {
   // Handle initialization errors (e.g., app already exists)
   console.error('Error initializing Firebase Admin:', error);
