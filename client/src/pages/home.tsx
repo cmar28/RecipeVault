@@ -52,6 +52,8 @@ const Home = () => {
   const uploadMutation = useMutation({
     mutationFn: uploadRecipeImage,
     onSuccess: (data) => {
+      console.log("Recipe created successfully:", data.recipe.id);
+      
       // Show success toast
       toast({
         title: "Recipe created!",
@@ -59,13 +61,16 @@ const Home = () => {
         duration: 3000,
       });
       
-      // Invalidate recipes query to refresh the list
+      // Force immediate refetch of recipes data
       queryClient.invalidateQueries({ queryKey: ['/api/recipes'] });
+      queryClient.refetchQueries({ queryKey: ['/api/recipes'] });
+      
+      // Update favorites if needed
+      queryClient.invalidateQueries({ queryKey: ['/api/favorites'] });
       
       // Navigate to the newly created recipe after a short delay so user can see the completed stages
       setTimeout(() => {
         setIsProcessingImage(false);
-        setLocation(`/recipes/${data.recipe.id}`);
         
         // Reset processing stages for next time
         setProcessingStages([
@@ -74,6 +79,9 @@ const Home = () => {
           { id: 'extracting', label: 'Extracting recipe details', status: 'pending' },
           { id: 'saving', label: 'Saving recipe', status: 'pending' }
         ]);
+        
+        // Navigate to the new recipe detail page
+        setLocation(`/recipes/${data.recipe.id}`);
       }, 1500);
     },
     onError: (error: Error) => {
@@ -418,7 +426,13 @@ const Home = () => {
             
             // If completed successfully, refresh the recipes list
             if (isComplete && !hasError) {
+              console.log("Recipe processing complete, forcing data refresh");
+              
+              // Invalidate and force an immediate refetch of the recipes
               queryClient.invalidateQueries({ queryKey: ['/api/recipes'] });
+              queryClient.refetchQueries({ queryKey: ['/api/recipes'] });
+              
+              // Invalidate favorites as well
               queryClient.invalidateQueries({ queryKey: ['/api/favorites'] });
             }
           }
