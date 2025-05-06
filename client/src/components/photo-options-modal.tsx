@@ -37,6 +37,9 @@ const PhotoOptionsModal = ({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-center text-xl">Processing Recipe</DialogTitle>
+            <p className="text-center text-muted-foreground mt-2">
+              We're digitizing your recipe for easy access
+            </p>
           </DialogHeader>
           <div className="flex flex-col items-center justify-center py-8">
             <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
@@ -54,6 +57,9 @@ const PhotoOptionsModal = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center text-xl">Add Recipe from Photo</DialogTitle>
+          <p className="text-center text-muted-foreground mt-2">
+            Digitize recipes from your cookbooks to have all your favorites in one place
+          </p>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-4 py-4">
           <div className="flex flex-col items-center">
