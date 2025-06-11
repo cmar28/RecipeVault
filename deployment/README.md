@@ -108,9 +108,9 @@ npm run db:push
 
 For automated deployments, you can set up a CI/CD pipeline using GitHub Actions or Google Cloud Build.
 
-### Example GitHub Actions workflow:
+### GitHub Actions workflow
 
-Create a file at `.github/workflows/deploy.yml`:
+This repository includes a ready-to-use workflow at `.github/workflows/deploy.yml`.
 
 ```yaml
 name: Deploy to Cloud Run

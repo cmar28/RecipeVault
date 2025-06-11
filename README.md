@@ -182,3 +182,7 @@ The application is designed with a mobile-first approach, ensuring optimal user 
 - Desktop browsers
 
 Interface components and layouts automatically adjust based on the device screen size using Tailwind CSS responsive design classes.
+
+## Deployment
+
+Deployment instructions and automation scripts are located in the [`deployment`](deployment/) directory. The included `setup-cloud-run.sh` script and GitHub Actions workflow help deploy the project to Google Cloud Run.
