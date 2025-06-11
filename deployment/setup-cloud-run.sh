@@ -4,7 +4,7 @@
 # This script helps set up and deploy the application to Google Cloud Run
 
 # Exit on error
-set -e
+set -euo pipefail
 
 # Check if the Google Cloud CLI is installed
 if ! command -v gcloud &> /dev/null; then
@@ -21,7 +21,9 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # Request Google Cloud project ID
-read -p "Enter your Google Cloud project ID: " PROJECT_ID
+if [ -z "${PROJECT_ID:-}" ]; then
+    read -p "Enter your Google Cloud project ID: " PROJECT_ID
+fi
 
 # Set the Google Cloud project
 echo "Setting Google Cloud project to: $PROJECT_ID"
@@ -32,32 +34,45 @@ echo "Enabling required Google Cloud services..."
 gcloud services enable cloudbuild.googleapis.com run.googleapis.com secretmanager.googleapis.com
 
 # Request deployment region
-read -p "Enter the region to deploy to (default: us-central1): " REGION
 REGION=${REGION:-us-central1}
+if [ -z "${CI:-}" ]; then
+    read -p "Enter the region to deploy to (default: $REGION): " REGION_INPUT
+    REGION=${REGION_INPUT:-$REGION}
+fi
 
 # Request service name
-read -p "Enter a name for your Cloud Run service (default: recipe-ai-app): " SERVICE_NAME
 SERVICE_NAME=${SERVICE_NAME:-recipe-ai-app}
+if [ -z "${CI:-}" ]; then
+    read -p "Enter a name for your Cloud Run service (default: $SERVICE_NAME): " SERVICE_NAME_INPUT
+    SERVICE_NAME=${SERVICE_NAME_INPUT:-$SERVICE_NAME}
+fi
 
 # Ask for environment variables or use a .env file
-echo "Would you like to:"
-echo "1) Enter environment variables manually"
-echo "2) Use a .env file"
-read -p "Choice (1/2): " ENV_CHOICE
+if [ -z "${ENV_CHOICE:-}" ]; then
+    echo "Would you like to:"
+    echo "1) Enter environment variables manually"
+    echo "2) Use a .env file"
+    read -p "Choice (1/2): " ENV_CHOICE
+fi
 
 case $ENV_CHOICE in
     1)
-        echo "Please enter your environment variables:"
-        read -p "DATABASE_URL: " DATABASE_URL
-        read -p "OPENAI_API_KEY: " OPENAI_API_KEY
-        read -p "TOGETHER_API_KEY (optional): " TOGETHER_API_KEY
-        read -p "FIREBASE_PROJECT_ID (optional): " FIREBASE_PROJECT_ID
-        read -p "FIREBASE_CLIENT_EMAIL (optional): " FIREBASE_CLIENT_EMAIL
-        read -p "FIREBASE_PRIVATE_KEY (optional): " FIREBASE_PRIVATE_KEY
+        if [ -z "${DATABASE_URL:-}" ]; then
+            echo "Please enter your environment variables:"
+            read -p "DATABASE_URL: " DATABASE_URL
+            read -p "OPENAI_API_KEY: " OPENAI_API_KEY
+            read -p "TOGETHER_API_KEY (optional): " TOGETHER_API_KEY
+            read -p "FIREBASE_PROJECT_ID (optional): " FIREBASE_PROJECT_ID
+            read -p "FIREBASE_CLIENT_EMAIL (optional): " FIREBASE_CLIENT_EMAIL
+            read -p "FIREBASE_PRIVATE_KEY (optional): " FIREBASE_PRIVATE_KEY
+        fi
         ;;
     2)
-        read -p "Enter the path to your .env file (default: ../.env): " ENV_FILE
         ENV_FILE=${ENV_FILE:-../.env}
+        if [ -z "${CI:-}" ]; then
+            read -p "Enter the path to your .env file (default: $ENV_FILE): " ENV_FILE_INPUT
+            ENV_FILE=${ENV_FILE_INPUT:-$ENV_FILE}
+        fi
         if [ ! -f "$ENV_FILE" ]; then
             echo "Error: .env file not found at $ENV_FILE"
             exit 1
@@ -74,7 +89,9 @@ case $ENV_CHOICE in
 esac
 
 # Ask if user wants to use Secret Manager for environment variables
-read -p "Would you like to store environment variables in Secret Manager? (y/n): " USE_SECRET_MANAGER
+if [ -z "${USE_SECRET_MANAGER:-}" ]; then
+    read -p "Would you like to store environment variables in Secret Manager? (y/n): " USE_SECRET_MANAGER
+fi
 
 if [ "$USE_SECRET_MANAGER" = "y" ]; then
     # Create secrets in Secret Manager
@@ -180,3 +197,4 @@ fi
 # Output the service URL
 echo "Deployment complete! Your app is being deployed to:"
 gcloud run services describe $SERVICE_NAME --platform managed --region $REGION --format 'value(status.url)'
+
